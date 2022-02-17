@@ -6,6 +6,6 @@
 namespace vmx
 {
 	void enable_vmx();
-	auto allocate_vcpu()->VirtualCpu*;
-	auto init_vmxon(VirtualCpu* vcpu) -> void*;
+	auto allocate_vcpu() -> VirtualCpu*;
+	int init_vmxon(VirtualCpu* vcpu);
 }

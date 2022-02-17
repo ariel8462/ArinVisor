@@ -6,6 +6,8 @@
 
 void driver_unload(PDRIVER_OBJECT driver_object);
 
+VirtualCpu* vcpu = nullptr;
+
 //Checks if the cpu brand is intel
 auto is_intel_cpu() -> bool
 {
@@ -72,8 +74,15 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 	KdPrint(("[+] ArinVisor loaded successfully\n"));
 
 	vmx::enable_vmx();
-	VirtualCpu* vcpu = vmx::allocate_vcpu();
-	vmx::init_vmxon(vcpu);
+	vcpu = vmx::allocate_vcpu();
+
+	if (vcpu == nullptr)
+	{
+		KdPrint(("[-] vcpu = nullptr\n"));
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
+
+	auto success = vmx::init_vmxon(vcpu);
 
 	return STATUS_SUCCESS;
 }
@@ -81,6 +90,20 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 void driver_unload(PDRIVER_OBJECT driver_object)
 {
 	UNREFERENCED_PARAMETER(driver_object);
+
 	//clean up stuff
+	if (vcpu)
+	{
+		if (vcpu->vmcs_region)
+		{
+			ExFreePool(vcpu->vmcs_region);
+		}
+		if (vcpu->vmxon_region)
+		{
+			ExFreePool(vcpu->vmxon_region);
+		}
+		ExFreePool(vcpu);
+	}
+
 	KdPrint(("[+] ArinVisor unloaded successfully\n"));
 }

@@ -57,6 +57,8 @@ void vmx::enable_vmx()
 	cr4.raw |= ia32_vmx_cr4_fixed0;
 	cr4.raw &= ia32_vmx_cr4_fixed1;
 	::__writecr4(cr4.raw);
+
+	KdPrint(("Adjusted cr0 and cr4\ncr0 = %lld\ncr4 = %lld\n", cr0, cr4.raw));
 }
 
 auto vmx::allocate_vcpu() -> VirtualCpu*
@@ -101,7 +103,7 @@ auto vmx::allocate_vcpu() -> VirtualCpu*
 	return vcpu;
 }
 
-auto vmx::init_vmxon(VirtualCpu* vcpu) -> void*
+int vmx::init_vmxon(VirtualCpu* vcpu)
 {
 	UNREFERENCED_PARAMETER(vcpu);
 	arch::Ia32VmxBasicMsr ia32_vmx_basic = {
@@ -111,14 +113,22 @@ auto vmx::init_vmxon(VirtualCpu* vcpu) -> void*
 	vcpu->vmxon_region->header.raw = ia32_vmx_basic.revision_identifier;
 	vcpu->vmxon_region->header.bits.shadow_vmcs_indicator = 0;
 
-	auto vmxon_region_physical_address = MmGetPhysicalAddress(vcpu->vmxon_region).QuadPart;
+	unsigned long long vmxon_region_physical_address = MmGetPhysicalAddress(vcpu->vmxon_region).QuadPart;
 
 	if (!vmxon_region_physical_address)
 	{
 		KdPrint(("[-] Failed getting the physical address of vmxon region\n"));
-		return nullptr;
+		return 0;
 	}
 
-	//fix, identifier not found
-	::__vmx_on(vmxon_region_physical_address);
+	auto status = ::__vmx_on(&vmxon_region_physical_address);
+
+	if (status)
+	{
+		KdPrint(("[-] VMXON failed\n"));
+		return false;
+	}
+
+	KdPrint(("Vcpu %d is now in VMX operation\n", KeGetCurrentProcessorNumber()));
+	return true;
 }
