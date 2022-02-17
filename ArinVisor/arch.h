@@ -4,10 +4,49 @@ namespace arch
 {
 	enum class Msr : unsigned long
 	{
-		IA32_FEATURE_CONTROL = 0x3a
+		IA32_FEATURE_CONTROL = 0x3a,
+		IA32_LSTAR = 0xc0000082,
+		IA32_VMX_BASIC = 0x480,
+		IA32_VMX_CR0_FIXED0 = 0x486,
+		IA32_VMX_CR0_FIXED1 = 0x487,
+		IA32_VMX_CR4_FIXED0 = 0x488,
+		IA32_VMX_CR4_FIXED1 = 0x489
 	};
 
-	struct cpu_features
+	union Cr4
+	{
+		struct
+		{
+			unsigned long long vme : 1;
+			unsigned long long pvi : 1;
+			unsigned long long tsd : 1;
+			unsigned long long de : 1;
+			unsigned long long pse : 1;
+			unsigned long long pae : 1;
+			unsigned long long mce : 1;
+			unsigned long long pge : 1;
+			unsigned long long pce : 1;
+			unsigned long long osfxsr : 1;
+			unsigned long long osxmmexcpt : 1;
+			unsigned long long umip : 1;
+			unsigned long long reserved1 : 1;
+			unsigned long long vmxe : 1;
+			unsigned long long smxe : 1;
+			unsigned long long reserved2 : 1;
+			unsigned long long fsgsbase : 1;
+			unsigned long long pcide : 1;
+			unsigned long long osxsave : 1;
+			unsigned long long reserved3 : 1;
+			unsigned long long smep : 1;
+			unsigned long long smap : 1;
+			unsigned long long pke : 1;
+			unsigned long long reserved4 : 41;
+		};
+
+		unsigned long long raw;
+	};
+
+	struct CpuFeatures
 	{
 		union
 		{
@@ -102,7 +141,7 @@ namespace arch
 		} edx;
 	};
 
-	union feature_control_msr
+	union FeatureControlMsr
 	{
 		struct
 		{
@@ -112,5 +151,44 @@ namespace arch
 		};
 
 		unsigned long long raw;
+	};
+	
+	constexpr unsigned int VMX_BASIC_MSR_SIZE = 0x1000;
+
+	union Ia32VmxBasicMsr
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long revision_identifier : 31;
+			unsigned long long reserved1 : 1;
+			unsigned long long region_size : 12;
+			unsigned long long region_clear : 1;
+			unsigned long long reserved2 : 3;
+			unsigned long long ia64_supported : 1;
+			unsigned long long supported_dual_monitor : 1;
+			unsigned long long memory_type : 4;
+			unsigned long long vmexit_repot : 1;
+			unsigned long long vmx_capability_hint : 1;
+			unsigned long long reserved3 : 8;
+		};
+	};
+
+	struct VmmRegions
+	{
+		union
+		{
+			struct
+			{
+				unsigned int revision_identifier : 31;
+				unsigned int shadow_vmcs_indicator : 1;
+			} bits;
+
+			unsigned int raw;
+		} header;
+
+		unsigned int abort_indicator;
+		char data[0x1000 - 2 * sizeof(unsigned int)];
 	};
 }

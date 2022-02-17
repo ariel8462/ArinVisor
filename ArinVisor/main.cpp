@@ -1,6 +1,7 @@
 #include <ntddk.h>
 #include <intrin.h>
 
+#include "vmx.h"
 #include "arch.h"
 
 void driver_unload(PDRIVER_OBJECT driver_object);
@@ -8,7 +9,7 @@ void driver_unload(PDRIVER_OBJECT driver_object);
 //Checks if the cpu brand is intel
 auto is_intel_cpu() -> bool
 {
-	arch::cpu_features cpuid_struct = { 0 };
+	arch::CpuFeatures cpuid_struct = { 0 };
 	char vendor_buffer[13];
 
 	::__cpuid(reinterpret_cast<int*>(&cpuid_struct), 0);
@@ -24,7 +25,7 @@ auto is_intel_cpu() -> bool
 //Checks if the cpu supports Intel VT-x and enabled in bios
 auto is_vmx_supported() -> bool
 {
-	arch::cpu_features cpuid_struct = { 0 };
+	arch::CpuFeatures cpuid_struct = { 0 };
 	::__cpuid(reinterpret_cast<int*>(&cpuid_struct), 0);
 
 	if (!cpuid_struct.ecx.vmx)
@@ -33,9 +34,10 @@ auto is_vmx_supported() -> bool
 		return false;
 	}
 	
-	arch::feature_control_msr features = { 0 };
-	features.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_FEATURE_CONTROL));
-
+	arch::FeatureControlMsr features = {
+		::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_FEATURE_CONTROL))
+	};
+	
 	//if virtualization disabled in bios
 	if (features.lock &&
 		((cpuid_struct.ecx.smx && !features.enable_smx) ||
@@ -67,10 +69,18 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 		return STATUS_NOT_SUPPORTED;
 	}
 
+	KdPrint(("[+] ArinVisor loaded successfully\n"));
+
+	vmx::enable_vmx();
+	VirtualCpu* vcpu = vmx::allocate_vcpu();
+	vmx::init_vmxon(vcpu);
+
 	return STATUS_SUCCESS;
 }
 
 void driver_unload(PDRIVER_OBJECT driver_object)
 {
+	UNREFERENCED_PARAMETER(driver_object);
 	//clean up stuff
+	KdPrint(("[+] ArinVisor unloaded successfully\n"));
 }
