@@ -5,16 +5,14 @@
 
 void vmx::enable_vmx()
 {
-	arch::Cr4 cr4 = { 
-		::__readcr4() 
-	};
+	arch::Cr4 cr4;
+	cr4.raw = ::__readcr4();
 
 	cr4.vmxe = true;
 	::__writecr4(cr4.raw);
 
-	arch::FeatureControlMsr feature_control = {
-		::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_FEATURE_CONTROL))
-	};
+	arch::FeatureControlMsr feature_control;
+	feature_control.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_FEATURE_CONTROL));
 
 	if (!feature_control.lock)
 	{
@@ -27,6 +25,9 @@ void vmx::enable_vmx()
 
 		KdPrint(("[+] Enabled VMX in IA32_FEATURE_CONTROL msr\n"));
 	}
+
+	KdPrint(("lock enabled: %lld\nvmx in smx enabled: %lld\nvmx enabled: %lld\n",
+		feature_control.lock, feature_control.enable_vmx_in_smx, feature_control.enable_vmx));
 
 	auto ia32_vmx_cr0_fixed0 = ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_CR0_FIXED0)
@@ -50,9 +51,8 @@ void vmx::enable_vmx()
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_CR4_FIXED1)
 	);
 
-	cr4 = { 
-		::__readcr4() 
-	};
+	RtlSecureZeroMemory(&cr4, sizeof(arch::Cr4));
+	cr4.raw = ::__readcr4();
 
 	cr4.raw |= ia32_vmx_cr4_fixed0;
 	cr4.raw &= ia32_vmx_cr4_fixed1;
@@ -106,9 +106,10 @@ auto vmx::allocate_vcpu() -> VirtualCpu*
 int vmx::init_vmxon(VirtualCpu* vcpu)
 {
 	UNREFERENCED_PARAMETER(vcpu);
-	arch::Ia32VmxBasicMsr ia32_vmx_basic = {
-		::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_BASIC))
-	};
+	arch::Ia32VmxBasicMsr ia32_vmx_basic;
+	ia32_vmx_basic.raw = ::__readmsr(
+		static_cast<unsigned long>(arch::Msr::IA32_VMX_BASIC)
+	);
 
 	vcpu->vmxon_region->header.raw = ia32_vmx_basic.revision_identifier;
 	vcpu->vmxon_region->header.bits.shadow_vmcs_indicator = 0;
@@ -118,7 +119,7 @@ int vmx::init_vmxon(VirtualCpu* vcpu)
 	if (!vmxon_region_physical_address)
 	{
 		KdPrint(("[-] Failed getting the physical address of vmxon region\n"));
-		return 0;
+		return false;
 	}
 
 	auto status = ::__vmx_on(&vmxon_region_physical_address);
@@ -129,6 +130,7 @@ int vmx::init_vmxon(VirtualCpu* vcpu)
 		return false;
 	}
 
+	KdPrint(("[+] Entered VMX state!\n"));
 	KdPrint(("Vcpu %d is now in VMX operation\n", KeGetCurrentProcessorNumber()));
 	return true;
 }

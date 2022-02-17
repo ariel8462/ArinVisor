@@ -15,6 +15,8 @@ namespace arch
 
 	union Cr4
 	{
+		unsigned long long raw;
+
 		struct
 		{
 			unsigned long long vme : 1;
@@ -42,8 +44,6 @@ namespace arch
 			unsigned long long pke : 1;
 			unsigned long long reserved4 : 41;
 		};
-
-		unsigned long long raw;
 	};
 
 	struct CpuFeatures
@@ -143,14 +143,14 @@ namespace arch
 
 	union FeatureControlMsr
 	{
+		unsigned long long raw;
+
 		struct
 		{
 			unsigned long long lock : 1;
-			unsigned long long enable_smx : 1;
+			unsigned long long enable_vmx_in_smx : 1;
 			unsigned long long enable_vmx : 1;
 		};
-
-		unsigned long long raw;
 	};
 	
 	constexpr unsigned int VMX_BASIC_MSR_SIZE = 0x1000;
