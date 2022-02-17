@@ -8,7 +8,7 @@ void vmx::enable_vmx()
 	arch::Cr4 cr4;
 	cr4.raw = ::__readcr4();
 
-	cr4.vmxe = true;
+	cr4.bits.vmxe = true;
 	::__writecr4(cr4.raw);
 
 	arch::FeatureControlMsr feature_control;
@@ -37,11 +37,11 @@ void vmx::enable_vmx()
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_CR0_FIXED1)
 	);
 
-	//to do - make cr0 struct
-	auto cr0 = ::__readcr0();
-	cr0 |= ia32_vmx_cr0_fixed0;
-	cr0 &= ia32_vmx_cr0_fixed1;
-	::__writecr0(cr0);
+	arch::Cr0 cr0;
+	cr0.raw = ::__readcr0();
+	cr0.raw |= ia32_vmx_cr0_fixed0;
+	cr0.raw &= ia32_vmx_cr0_fixed1;
+	::__writecr0(cr0.raw);
 
 	auto ia32_vmx_cr4_fixed0 = ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_CR4_FIXED0)
@@ -52,13 +52,13 @@ void vmx::enable_vmx()
 	);
 
 	RtlSecureZeroMemory(&cr4, sizeof(arch::Cr4));
-	cr4.raw = ::__readcr4();
 
+	cr4.raw = ::__readcr4();
 	cr4.raw |= ia32_vmx_cr4_fixed0;
 	cr4.raw &= ia32_vmx_cr4_fixed1;
 	::__writecr4(cr4.raw);
 
-	KdPrint(("Adjusted cr0 and cr4\ncr0 = %lld\ncr4 = %lld\n", cr0, cr4.raw));
+	KdPrint(("Adjusted cr0 and cr4\ncr0 = %llx\ncr4 = %llx\n", cr0.raw, cr4.raw));
 }
 
 auto vmx::allocate_vcpu() -> VirtualCpu*
@@ -69,7 +69,7 @@ auto vmx::allocate_vcpu() -> VirtualCpu*
 
 	if (!vcpu)
 	{
-		KdPrint(("[-] Allocating vcpu failed\n"));
+		KdPrint(("[-] Vcpu allocation failed\n"));
 		return nullptr;
 	}
 
@@ -83,7 +83,7 @@ auto vmx::allocate_vcpu() -> VirtualCpu*
 	
 	if (!vcpu->vmcs_region)
 	{
-		KdPrint(("[-] Allocating vmcs region failed\n"));
+		KdPrint(("[-] Vmcs region allocation failed\n"));
 		return nullptr;
 	}
 
@@ -94,7 +94,7 @@ auto vmx::allocate_vcpu() -> VirtualCpu*
 
 	if (!vcpu->vmxon_region)
 	{
-		KdPrint(("[-] Allocating vmxon region failed\n"));
+		KdPrint(("[-] Vmxon region allocation failed\n"));
 		return nullptr;
 	}
 
@@ -105,13 +105,12 @@ auto vmx::allocate_vcpu() -> VirtualCpu*
 
 int vmx::init_vmxon(VirtualCpu* vcpu)
 {
-	UNREFERENCED_PARAMETER(vcpu);
 	arch::Ia32VmxBasicMsr ia32_vmx_basic;
 	ia32_vmx_basic.raw = ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_BASIC)
 	);
 
-	vcpu->vmxon_region->header.raw = ia32_vmx_basic.revision_identifier;
+	vcpu->vmxon_region->header.raw = ia32_vmx_basic.bits.revision_identifier;
 	vcpu->vmxon_region->header.bits.shadow_vmcs_indicator = 0;
 
 	unsigned long long vmxon_region_physical_address = MmGetPhysicalAddress(vcpu->vmxon_region).QuadPart;

@@ -86,6 +86,12 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 
 	auto success = vmx::init_vmxon(vcpu);
 	
+	if (!success)
+	{
+		KdPrint(("[-] Entering VMX operation failed\n"));
+		return STATUS_UNSUCCESSFUL;
+	}
+
 	return STATUS_SUCCESS;
 }
 

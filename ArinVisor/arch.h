@@ -13,6 +13,30 @@ namespace arch
 		IA32_VMX_CR4_FIXED1 = 0x489
 	};
 
+	union Cr0
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long pe : 1;
+			unsigned long long mp : 1;
+			unsigned long long em : 1;
+			unsigned long long ts : 1;
+			unsigned long long et : 1;
+			unsigned long long ne : 1;
+			unsigned long long reserved1 : 10;
+			unsigned long long wp : 1;
+			unsigned long long reserved2 : 1;
+			unsigned long long am : 1;
+			unsigned long long reserved3 : 10;
+			unsigned long long nw : 1;
+			unsigned long long cd : 1;
+			unsigned long long pg : 1;
+			unsigned long long reserved4 : 32;
+		} bits;
+	};
+
 	union Cr4
 	{
 		unsigned long long raw;
@@ -43,7 +67,7 @@ namespace arch
 			unsigned long long smap : 1;
 			unsigned long long pke : 1;
 			unsigned long long reserved4 : 41;
-		};
+		} bits;
 	};
 
 	struct CpuFeatures
@@ -172,7 +196,7 @@ namespace arch
 			unsigned long long vmexit_repot : 1;
 			unsigned long long vmx_capability_hint : 1;
 			unsigned long long reserved3 : 8;
-		};
+		} bits;
 	};
 
 	struct VmmRegions
