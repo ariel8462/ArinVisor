@@ -90,7 +90,6 @@ void driver_unload(PDRIVER_OBJECT driver_object)
 	//clean up stuff
 	if (vcpu != nullptr)
 	{
-		KdPrint(("[+] Deleting vcpu OwO\n"));
 		if (vcpu->vmcs_region)
 		{
 			MmFreeContiguousMemory(vcpu->vmcs_region);
