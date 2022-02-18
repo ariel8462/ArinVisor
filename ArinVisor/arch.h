@@ -215,4 +215,7 @@ namespace arch
 		unsigned int abort_indicator;
 		char data[0x1000 - 2 * sizeof(unsigned int)];
 	};
+
+	constexpr int CPUID_BASIC_INFO = 0x0;
+	constexpr int CPUID_VERSION_INFO = 0x1;
 }

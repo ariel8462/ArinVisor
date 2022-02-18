@@ -3,10 +3,11 @@
 
 #include "vmx.h"
 #include "arch.h"
-
-void driver_unload(PDRIVER_OBJECT driver_object);
+#include "load.h"
 
 VirtualCpu* vcpu = nullptr;
+
+void driver_unload(PDRIVER_OBJECT driver_object);
 
 //Checks if the cpu brand is intel
 auto is_intel_cpu() -> bool
@@ -14,7 +15,7 @@ auto is_intel_cpu() -> bool
 	arch::CpuFeatures cpuid_info = { 0 };
 	char vendor_buffer[13];
 
-	::__cpuid(reinterpret_cast<int*>(&cpuid_info), 0);
+	::__cpuid(reinterpret_cast<int*>(&cpuid_info), arch::CPUID_BASIC_INFO);
 
 	::memcpy_s(vendor_buffer, 12, &cpuid_info.ebx.raw, 4);
 	::memcpy_s(vendor_buffer + 4, 12, &cpuid_info.edx.raw, 4);
@@ -28,7 +29,7 @@ auto is_intel_cpu() -> bool
 auto is_vmx_supported() -> bool
 {
 	arch::CpuFeatures cpuid_info = { 0 };
-	::__cpuid(reinterpret_cast<int*>(&cpuid_info), 1);
+	::__cpuid(reinterpret_cast<int*>(&cpuid_info), arch::CPUID_VERSION_INFO);
 
 	if (!cpuid_info.ecx.vmx)
 	{
@@ -69,28 +70,15 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 		return STATUS_NOT_SUPPORTED;
 	}
 
-	KdPrint(("[+] ArinVisor loaded successfully\n"));
-	
-	vmx::enable_vmx();
-	KdPrint(("[+] Enabled VMX\n"));
-	
-	vcpu = vmx::allocate_vcpu();
+	auto success = load::load_hypervisor(vcpu);
 
-	if (vcpu == nullptr)
-	{
-		KdPrint(("[-] vcpu struct was not allocated properly\n"));
-		return STATUS_INSUFFICIENT_RESOURCES;
-	}
-
-	KdPrint(("[+] allocated vmxon & vmcs regions, and vcpu"));
-
-	auto success = vmx::init_vmxon(vcpu);
-	
 	if (!success)
 	{
-		KdPrint(("[-] Entering VMX operation failed\n"));
+		KdPrint(("[-] Failed to load ArinVisor"));
 		return STATUS_UNSUCCESSFUL;
 	}
+	
+	KdPrint(("[+] ArinVisor loaded successfully\n"));
 
 	return STATUS_SUCCESS;
 }
@@ -100,8 +88,9 @@ void driver_unload(PDRIVER_OBJECT driver_object)
 	UNREFERENCED_PARAMETER(driver_object);
 
 	//clean up stuff
-	if (vcpu)
+	if (vcpu != nullptr)
 	{
+		KdPrint(("[+] Deleting vcpu OwO\n"));
 		if (vcpu->vmcs_region)
 		{
 			MmFreeContiguousMemory(vcpu->vmcs_region);

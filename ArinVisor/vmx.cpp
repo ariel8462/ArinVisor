@@ -18,6 +18,7 @@ void vmx::enable_vmx()
 	{
 		feature_control.lock = 1;
 		feature_control.enable_vmx = 1;
+		feature_control.enable_vmx_in_smx = 1;
 
 		::__writemsr(
 			static_cast<unsigned long>(arch::Msr::IA32_FEATURE_CONTROL), feature_control.raw
@@ -52,58 +53,15 @@ void vmx::enable_vmx()
 	);
 
 	RtlSecureZeroMemory(&cr4, sizeof(arch::Cr4));
-
 	cr4.raw = ::__readcr4();
 	cr4.raw |= ia32_vmx_cr4_fixed0;
 	cr4.raw &= ia32_vmx_cr4_fixed1;
 	::__writecr4(cr4.raw);
 
-	KdPrint(("Adjusted cr0 and cr4\ncr0 = %llx\ncr4 = %llx\n", cr0.raw, cr4.raw));
+	KdPrint(("Adjusted cr0 and cr4:\n   cr0 = %lld\n   cr4 = %lld\n", cr0.raw, cr4.raw));
 }
 
-auto vmx::allocate_vcpu() -> VirtualCpu*
-{
-	VirtualCpu* vcpu = reinterpret_cast<VirtualCpu*>(
-		ExAllocatePoolWithTag(NonPagedPool, sizeof(VirtualCpu), 'arin')
-		);
-
-	if (!vcpu)
-	{
-		KdPrint(("[-] Vcpu allocation failed\n"));
-		return nullptr;
-	}
-
-	RtlSecureZeroMemory(vcpu, sizeof(VirtualCpu));
-
-	PHYSICAL_ADDRESS physical_max = { 0 };
-	physical_max.QuadPart = MAXULONG64;
-	vcpu->vmcs_region = reinterpret_cast<arch::VmmRegions*>(
-		MmAllocateContiguousMemory(arch::VMX_BASIC_MSR_SIZE, physical_max)
-		);
-	
-	if (!vcpu->vmcs_region)
-	{
-		KdPrint(("[-] Vmcs region allocation failed\n"));
-		return nullptr;
-	}
-
-	RtlSecureZeroMemory(vcpu->vmcs_region, arch::VMX_BASIC_MSR_SIZE);
-	vcpu->vmxon_region = reinterpret_cast<arch::VmmRegions*>(
-		MmAllocateContiguousMemory(arch::VMX_BASIC_MSR_SIZE, physical_max)
-		);
-
-	if (!vcpu->vmxon_region)
-	{
-		KdPrint(("[-] Vmxon region allocation failed\n"));
-		return nullptr;
-	}
-
-	RtlSecureZeroMemory(vcpu->vmxon_region, arch::VMX_BASIC_MSR_SIZE);
-
-	return vcpu;
-}
-
-int vmx::init_vmxon(VirtualCpu* vcpu)
+bool vmx::init_vmxon(VirtualCpu* vcpu)
 {
 	arch::Ia32VmxBasicMsr ia32_vmx_basic;
 	ia32_vmx_basic.raw = ::__readmsr(
@@ -121,15 +79,73 @@ int vmx::init_vmxon(VirtualCpu* vcpu)
 		return false;
 	}
 
-	auto status = ::__vmx_on(&vmxon_region_physical_address);
+	auto failed = ::__vmx_on(&vmxon_region_physical_address);
 
-	if (status)
+	if (failed)
 	{
 		KdPrint(("[-] VMXON failed\n"));
 		return false;
 	}
 
 	KdPrint(("[+] Entered VMX state!\n"));
-	KdPrint(("Vcpu %d is now in VMX operation\n", KeGetCurrentProcessorNumber()));
+	KdPrint(("[+] Vcpu %d is now in VMX operation\n", KeGetCurrentProcessorNumber()));
 	return true;
+}
+
+auto vmx::allocate_vcpu() -> VirtualCpu*
+{
+
+	VirtualCpu* vcpu = reinterpret_cast<VirtualCpu*>(
+		ExAllocatePoolWithTag(NonPagedPool, sizeof(VirtualCpu), 'arin')
+		);
+
+	if (!vcpu)
+	{
+		KdPrint(("[-] Vcpu allocation failed\n"));
+		return nullptr;
+	}
+
+	RtlSecureZeroMemory(vcpu, sizeof(VirtualCpu));
+
+	return vcpu;
+}
+
+auto vmx::allocate_vmxon_region() -> arch::VmmRegions*
+{
+	PHYSICAL_ADDRESS physical_max = { 0 };
+	physical_max.QuadPart = MAXULONG64;
+
+	auto vmx_region = reinterpret_cast<arch::VmmRegions*>(
+		MmAllocateContiguousMemory(arch::VMX_BASIC_MSR_SIZE, physical_max)
+		);
+
+	if (!vmx_region)
+	{
+		KdPrint(("[-] Vmxon region allocation failed\n"));
+		return nullptr;
+	}
+
+	RtlSecureZeroMemory(vmx_region, arch::VMX_BASIC_MSR_SIZE);
+
+	return vmx_region;
+}
+
+auto vmx::allocate_vmcs_region() -> arch::VmmRegions*
+{
+	PHYSICAL_ADDRESS physical_max = { 0 };
+	physical_max.QuadPart = MAXULONG64;
+
+	auto vmcs_region = reinterpret_cast<arch::VmmRegions*>(
+		MmAllocateContiguousMemory(arch::VMX_BASIC_MSR_SIZE, physical_max)
+		);
+
+	if (!vmcs_region)
+	{
+		KdPrint(("[-] Vmcs region allocation failed\n"));
+		return nullptr;
+	}
+
+	RtlSecureZeroMemory(vmcs_region, arch::VMX_BASIC_MSR_SIZE);
+
+	return vmcs_region;
 }

@@ -7,5 +7,7 @@ namespace vmx
 {
 	void enable_vmx();
 	auto allocate_vcpu() -> VirtualCpu*;
-	int init_vmxon(VirtualCpu* vcpu);
+	bool init_vmxon(VirtualCpu* vcpu);
+	auto allocate_vmxon_region() -> arch::VmmRegions*;
+	auto allocate_vmcs_region() -> arch::VmmRegions*;
 }
