@@ -168,11 +168,13 @@
   <ItemGroup>
     <ClCompile Include="load.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="utils.cpp" />
     <ClCompile Include="vmx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="arch.h" />
     <ClInclude Include="load.h" />
+    <ClInclude Include="utils.h" />
     <ClInclude Include="vmm.h" />
     <ClInclude Include="vmx.h" />
   </ItemGroup>

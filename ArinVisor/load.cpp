@@ -3,7 +3,7 @@
 #include "load.h"
 #include "vmx.h"
 
-void free_memory(VirtualCpu* vcpu);
+VirtualCpu* vcpu = nullptr;
 
 bool load::load_hypervisor(VirtualCpu*& vcpu)
 {
@@ -20,6 +20,8 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 	}
 
 	KdPrint(("[+] allocated vcpu successfully"));
+
+	vcpu->processor_number = KeGetCurrentProcessorNumber();
 	vcpu->vmxon_region = vmx::allocate_vmxon_region();
 
 	if (vcpu->vmxon_region == nullptr)
@@ -52,7 +54,7 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 	return true;
 }
 
-void free_memory(VirtualCpu* vcpu)
+static void free_memory(VirtualCpu* vcpu)
 {
 	if (vcpu != nullptr)
 	{

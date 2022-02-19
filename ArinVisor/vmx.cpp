@@ -88,13 +88,12 @@ bool vmx::init_vmxon(VirtualCpu* vcpu)
 	}
 
 	KdPrint(("[+] Entered VMX state!\n"));
-	KdPrint(("[+] Vcpu %d is now in VMX operation\n", KeGetCurrentProcessorNumber()));
+	KdPrint(("[+] Vcpu %d is now in VMX operation\n", vcpu->processor_number));
 	return true;
 }
 
 auto vmx::allocate_vcpu() -> VirtualCpu*
 {
-
 	VirtualCpu* vcpu = reinterpret_cast<VirtualCpu*>(
 		ExAllocatePoolWithTag(NonPagedPool, sizeof(VirtualCpu), 'arin')
 		);
@@ -115,21 +114,22 @@ auto vmx::allocate_vmxon_region() -> arch::VmmRegions*
 	PHYSICAL_ADDRESS physical_max = { 0 };
 	physical_max.QuadPart = MAXULONG64;
 
-	auto vmx_region = reinterpret_cast<arch::VmmRegions*>(
+	auto vmxon_region = reinterpret_cast<arch::VmmRegions*>(
 		MmAllocateContiguousMemory(arch::VMX_BASIC_MSR_SIZE, physical_max)
 		);
 
-	if (!vmx_region)
+	if (!vmxon_region)
 	{
 		KdPrint(("[-] Vmxon region allocation failed\n"));
 		return nullptr;
 	}
 
-	RtlSecureZeroMemory(vmx_region, arch::VMX_BASIC_MSR_SIZE);
+	RtlSecureZeroMemory(vmxon_region, arch::VMX_BASIC_MSR_SIZE);
 
-	return vmx_region;
+	return vmxon_region;
 }
 
+//move later on to vmcs.cpp file
 auto vmx::allocate_vmcs_region() -> arch::VmmRegions*
 {
 	PHYSICAL_ADDRESS physical_max = { 0 };
