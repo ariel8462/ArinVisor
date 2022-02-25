@@ -1,7 +1,12 @@
 #pragma once
 
+#include "vmm.h"
+
+constexpr unsigned long kTag = 'nira';
+
 namespace utils
 {
-	auto is_intel_cpu() -> bool;
-	auto is_vmx_supported() -> bool;
+	bool is_intel_cpu();
+	bool is_vmx_supported();
+	void free_memory(VmmContext* vmm_context);
 }

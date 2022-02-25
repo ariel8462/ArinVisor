@@ -2,6 +2,7 @@
 #include <ntddk.h>
 
 #include "vmx.h"
+#include "utils.h"
 
 void vmx::enable_vmx()
 {
@@ -14,11 +15,11 @@ void vmx::enable_vmx()
 	arch::FeatureControlMsr feature_control;
 	feature_control.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_FEATURE_CONTROL));
 
-	if (!feature_control.lock)
+	if (!feature_control.bits.lock)
 	{
-		feature_control.lock = 1;
-		feature_control.enable_vmx = 1;
-		feature_control.enable_vmx_in_smx = 1;
+		feature_control.bits.lock = 1;
+		feature_control.bits.enable_vmx = 1;
+		feature_control.bits.enable_vmx_in_smx = 1;
 
 		::__writemsr(
 			static_cast<unsigned long>(arch::Msr::IA32_FEATURE_CONTROL), feature_control.raw
@@ -28,7 +29,7 @@ void vmx::enable_vmx()
 	}
 
 	KdPrint(("lock enabled: %lld\nvmx in smx enabled: %lld\nvmx enabled: %lld\n",
-		feature_control.lock, feature_control.enable_vmx_in_smx, feature_control.enable_vmx));
+		feature_control.bits.lock, feature_control.bits.enable_vmx_in_smx, feature_control.bits.enable_vmx));
 
 	auto ia32_vmx_cr0_fixed0 = ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_CR0_FIXED0)
@@ -89,24 +90,8 @@ bool vmx::init_vmxon(VirtualCpu* vcpu)
 
 	KdPrint(("[+] Entered VMX state!\n"));
 	KdPrint(("[+] Vcpu %d is now in VMX operation\n", vcpu->processor_number));
+
 	return true;
-}
-
-auto vmx::allocate_vcpu() -> VirtualCpu*
-{
-	VirtualCpu* vcpu = reinterpret_cast<VirtualCpu*>(
-		ExAllocatePoolWithTag(NonPagedPool, sizeof(VirtualCpu), 'arin')
-		);
-
-	if (!vcpu)
-	{
-		KdPrint(("[-] Vcpu allocation failed\n"));
-		return nullptr;
-	}
-
-	RtlSecureZeroMemory(vcpu, sizeof(VirtualCpu));
-
-	return vcpu;
 }
 
 auto vmx::allocate_vmxon_region() -> arch::VmmRegions*
@@ -115,7 +100,7 @@ auto vmx::allocate_vmxon_region() -> arch::VmmRegions*
 	physical_max.QuadPart = MAXULONG64;
 
 	auto vmxon_region = reinterpret_cast<arch::VmmRegions*>(
-		MmAllocateContiguousMemory(arch::VMX_BASIC_MSR_SIZE, physical_max)
+		MmAllocateContiguousMemory(arch::VMX_REGION_SIZE, physical_max)
 		);
 
 	if (!vmxon_region)
@@ -124,7 +109,7 @@ auto vmx::allocate_vmxon_region() -> arch::VmmRegions*
 		return nullptr;
 	}
 
-	RtlSecureZeroMemory(vmxon_region, arch::VMX_BASIC_MSR_SIZE);
+	RtlSecureZeroMemory(vmxon_region, arch::VMX_REGION_SIZE);
 
 	return vmxon_region;
 }
@@ -136,7 +121,7 @@ auto vmx::allocate_vmcs_region() -> arch::VmmRegions*
 	physical_max.QuadPart = MAXULONG64;
 
 	auto vmcs_region = reinterpret_cast<arch::VmmRegions*>(
-		MmAllocateContiguousMemory(arch::VMX_BASIC_MSR_SIZE, physical_max)
+		MmAllocateContiguousMemory(arch::VMX_REGION_SIZE, physical_max)
 		);
 
 	if (!vmcs_region)
@@ -145,7 +130,29 @@ auto vmx::allocate_vmcs_region() -> arch::VmmRegions*
 		return nullptr;
 	}
 
-	RtlSecureZeroMemory(vmcs_region, arch::VMX_BASIC_MSR_SIZE);
+	RtlSecureZeroMemory(vmcs_region, arch::VMX_REGION_SIZE);
 
 	return vmcs_region;
+}
+
+void vmx::vmxoff()
+{
+	GROUP_AFFINITY affinity = { 0 };
+	GROUP_AFFINITY original_affinity = { 0 };
+	PROCESSOR_NUMBER processor_number = { 0 };
+
+	for (unsigned long i = 0; i < vmm_context->processor_count; i++)
+	{
+		RtlSecureZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
+		KeGetProcessorNumberFromIndex(i, &processor_number);
+
+		affinity.Group = processor_number.Group;
+		affinity.Mask = 1ull << processor_number.Number;
+
+		KeSetSystemGroupAffinityThread(&affinity, &original_affinity);
+
+		::__vmx_off();
+
+		KeRevertToUserGroupAffinityThread(&original_affinity);
+	}
 }

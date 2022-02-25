@@ -2,24 +2,40 @@
 
 #include "load.h"
 #include "vmx.h"
+#include "utils.h"
 
-VirtualCpu* vcpu = nullptr;
+VmmContext* vmm_context = nullptr;
+
+static bool allocate_vcpu(VirtualCpu*& vcpu)
+{
+	vcpu = reinterpret_cast<VirtualCpu*>(
+		ExAllocatePoolWithTag(NonPagedPool, sizeof(VirtualCpu), kTag)
+		);
+
+	if (!vcpu)
+	{
+		KdPrint(("[-] Vcpu allocation failed\n"));
+		return false;
+	}
+
+	RtlSecureZeroMemory(vcpu, sizeof(VirtualCpu));
+
+	return true;
+}
 
 bool load::load_hypervisor(VirtualCpu*& vcpu)
 {
 	vmx::enable_vmx();
 
 	KdPrint(("[+] Enabled VMX\n"));
-
-	vcpu = vmx::allocate_vcpu();
 	
-	if (vcpu == nullptr)
+	if (!allocate_vcpu(vcpu))
 	{
 		KdPrint(("[-] Error in vcpu allocation\n"));
 		return false;
 	}
 
-	KdPrint(("[+] allocated vcpu successfully"));
+	KdPrint(("[+] allocated vcpu successfully\n"));
 
 	vcpu->processor_number = KeGetCurrentProcessorNumber();
 	vcpu->vmxon_region = vmx::allocate_vmxon_region();
@@ -27,45 +43,26 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 	if (vcpu->vmxon_region == nullptr)
 	{
 		KdPrint(("[-] Error in vmxon region allocation\n"));
-		free_memory(vcpu);
 		return false;
 	}
 
-	KdPrint(("[+] allocated vmxon region successfully"));
+	KdPrint(("[+] allocated vmxon region successfully\n"));
 	vcpu->vmcs_region = vmx::allocate_vmcs_region();
 
 	if (vcpu->vmcs_region == nullptr)
 	{
 		KdPrint(("[-] Error in vmcs region allocation\n"));
-		free_memory(vcpu);
 		return false;
 	}
 
-	KdPrint(("[+] allocated vmcs region successfully"));
+	KdPrint(("[+] allocated vmcs region successfully\n"));
 	auto success = vmx::init_vmxon(vcpu);
 
 	if (!success)
 	{
 		KdPrint(("[-] Entering VMX operation failed\n"));
-		free_memory(vcpu);
 		return false;
 	}
 
 	return true;
-}
-
-static void free_memory(VirtualCpu* vcpu)
-{
-	if (vcpu != nullptr)
-	{
-		if (vcpu->vmxon_region)
-		{
-			MmFreeContiguousMemory(vcpu->vmxon_region);
-		}
-		if (vcpu->vmcs_region)
-		{
-			MmFreeContiguousMemory(vcpu->vmcs_region);
-		}
-		ExFreePool(vcpu);
-	}
 }
