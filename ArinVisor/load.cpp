@@ -4,8 +4,6 @@
 #include "vmx.h"
 #include "utils.h"
 
-VmmContext* vmm_context = nullptr;
-
 static bool allocate_vcpu(VirtualCpu*& vcpu)
 {
 	vcpu = reinterpret_cast<VirtualCpu*>(

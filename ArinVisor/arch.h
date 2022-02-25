@@ -1,5 +1,7 @@
 #pragma once
 
+constexpr unsigned long kTag = 'nira';
+
 namespace arch
 {
 	enum class Msr : unsigned long

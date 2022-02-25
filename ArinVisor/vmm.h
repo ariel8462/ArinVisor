@@ -15,7 +15,7 @@ struct VmmContext
 	VirtualCpu* processors_vcpu[6];
 };
 
-auto allocate_vmm_context() -> VmmContext*
+static auto allocate_vmm_context() -> VmmContext*
 {
 	VmmContext* vmm_context = reinterpret_cast<VmmContext*>(
 		ExAllocatePoolWithTag(PagedPool, sizeof(VmmContext), kTag)

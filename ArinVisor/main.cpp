@@ -7,7 +7,8 @@
 #include "vmm.h"
 #include "vmx.h"
 
-bool success = false;
+VmmContext* vmm_context = nullptr;
+static bool success = false;
 void driver_unload(PDRIVER_OBJECT driver_object);
 
 //add logging eventually to some important msr's, control registers etc
@@ -81,7 +82,6 @@ void driver_unload(PDRIVER_OBJECT driver_object)
 	UNREFERENCED_PARAMETER(driver_object);
 
 	vmx::vmxoff();
-
 	utils::free_memory(vmm_context);
 
 	KdPrint(("[+] ArinVisor unloaded successfully\n"));
