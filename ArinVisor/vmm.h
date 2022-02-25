@@ -12,16 +12,7 @@ struct VirtualCpu
 struct VmmContext
 {
 	unsigned long processor_count;
-	VirtualCpu* processors_vcpu[6];
+	VirtualCpu* processors_vcpu[8]; //to do - change later from constant to number of active processors
 };
-
-static auto allocate_vmm_context() -> VmmContext*
-{
-	VmmContext* vmm_context = reinterpret_cast<VmmContext*>(
-		ExAllocatePoolWithTag(PagedPool, sizeof(VmmContext), kTag)
-		);
-
-	return (vmm_context != nullptr ? vmm_context : nullptr);
-}
 
 extern VmmContext* vmm_context;

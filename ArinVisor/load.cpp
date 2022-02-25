@@ -3,11 +3,12 @@
 #include "load.h"
 #include "vmx.h"
 #include "utils.h"
+#include "memory.h"
 
 static bool allocate_vcpu(VirtualCpu*& vcpu)
 {
 	vcpu = reinterpret_cast<VirtualCpu*>(
-		ExAllocatePoolWithTag(NonPagedPool, sizeof(VirtualCpu), kTag)
+		new (NonPagedPool, kTag) VirtualCpu
 		);
 
 	if (!vcpu)

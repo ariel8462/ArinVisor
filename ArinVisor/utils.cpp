@@ -45,9 +45,9 @@ bool utils::is_vmx_supported()
 
 void utils::free_memory(VmmContext* vmm_context)
 {
-	for (unsigned int i = 0; i < vmm_context->processor_count; i++)
+	for (unsigned long i = 0; i < vmm_context->processor_count; i++)
 	{
-		VirtualCpu* vcpu = vmm_context->processors_vcpu[i];
+		auto vcpu = vmm_context->processors_vcpu[i];
 
 		if (vcpu != nullptr)
 		{
@@ -59,8 +59,8 @@ void utils::free_memory(VmmContext* vmm_context)
 			{
 				MmFreeContiguousMemory(vcpu->vmxon_region);
 			}
-			ExFreePool(vcpu);
+			delete vcpu;
 		}
 	}
-	ExFreePool(vmm_context);
+	delete vmm_context;
 }

@@ -6,9 +6,11 @@
 #include "utils.h"
 #include "vmm.h"
 #include "vmx.h"
+#include "memory.h"
 
 VmmContext* vmm_context = nullptr;
 static bool success = false;
+
 void driver_unload(PDRIVER_OBJECT driver_object);
 
 //add logging eventually to some important msr's, control registers etc
@@ -34,13 +36,14 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 		return STATUS_NOT_SUPPORTED;
 	}
 
-	vmm_context = allocate_vmm_context();
+	vmm_context = new (NonPagedPool, kTag) VmmContext;
 
 	if (!vmm_context)
 	{
 		KdPrint(("[-] VMM context struct allocation failed\n"));
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
+
 
 	vmm_context->processor_count = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 
