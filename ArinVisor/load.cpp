@@ -4,6 +4,7 @@
 #include "vmx.h"
 #include "utils.h"
 #include "memory.h"
+#include "vmcs.h"
 
 static bool allocate_vcpu(VirtualCpu*& vcpu)
 {
@@ -46,7 +47,7 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 	}
 
 	KdPrint(("[+] allocated vmxon region successfully\n"));
-	vcpu->vmcs_region = vmx::allocate_vmcs_region();
+	vcpu->vmcs_region = vmcs::allocate_vmcs_region();
 
 	if (vcpu->vmcs_region == nullptr)
 	{
@@ -60,6 +61,14 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 	if (!success)
 	{
 		KdPrint(("[-] Entering VMX operation failed\n"));
+		return false;
+	}
+
+	success = vmcs::setup_vmcs(vcpu);
+
+	if (!success)
+	{
+		KdPrint(("[-] Setting up VMCS failed\n"));
 		return false;
 	}
 

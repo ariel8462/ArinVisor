@@ -1,5 +1,5 @@
-#include <intrin.h>
 #include <ntddk.h>
+#include <intrin.h>
 
 #include "vmx.h"
 #include "utils.h"
@@ -112,27 +112,6 @@ auto vmx::allocate_vmxon_region() -> arch::VmmRegions*
 	RtlSecureZeroMemory(vmxon_region, arch::VMX_REGION_SIZE);
 
 	return vmxon_region;
-}
-
-//move later on to vmcs.cpp file
-auto vmx::allocate_vmcs_region() -> arch::VmmRegions*
-{
-	PHYSICAL_ADDRESS physical_max = { 0 };
-	physical_max.QuadPart = MAXULONG64;
-
-	auto vmcs_region = reinterpret_cast<arch::VmmRegions*>(
-		MmAllocateContiguousMemory(arch::VMX_REGION_SIZE, physical_max)
-		);
-
-	if (!vmcs_region)
-	{
-		KdPrint(("[-] Vmcs region allocation failed\n"));
-		return nullptr;
-	}
-
-	RtlSecureZeroMemory(vmcs_region, arch::VMX_REGION_SIZE);
-
-	return vmcs_region;
 }
 
 void vmx::vmxoff()

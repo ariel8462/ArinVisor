@@ -5,8 +5,11 @@
 struct VirtualCpu
 {
 	unsigned long processor_number;
+
 	arch::VmmRegions* vmxon_region;
 	arch::VmmRegions* vmcs_region;
+
+	char stack[0x6000];
 };
 
 struct VmmContext

@@ -9,7 +9,6 @@
 #include "memory.h"
 
 VmmContext* vmm_context = nullptr;
-static bool success = false;
 
 void driver_unload(PDRIVER_OBJECT driver_object);
 
@@ -21,6 +20,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 	GROUP_AFFINITY affinity = { 0 };
 	GROUP_AFFINITY original_affinity = { 0 };
 	PROCESSOR_NUMBER processor_number = { 0 };
+	bool success = false;
 
 	//bla bla stuff to initialize, driver unload routine, irp major functions
 	driver_object->DriverUnload = driver_unload;
@@ -43,7 +43,6 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 		KdPrint(("[-] VMM context struct allocation failed\n"));
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
-
 
 	vmm_context->processor_count = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 

@@ -2,6 +2,8 @@
 
 constexpr unsigned long kTag = 'nira';
 
+extern "C" void _sgdt(void*);
+
 namespace arch
 {
 	enum class Msr : unsigned long
@@ -12,7 +14,14 @@ namespace arch
 		IA32_VMX_CR0_FIXED0 = 0x486,
 		IA32_VMX_CR0_FIXED1 = 0x487,
 		IA32_VMX_CR4_FIXED0 = 0x488,
-		IA32_VMX_CR4_FIXED1 = 0x489
+		IA32_VMX_CR4_FIXED1 = 0x489,
+		IA32_DEBUGCTL = 0x1d9,
+		IA32_SYSENTER_CS = 0x174,
+		IA32_SYSENTER_ESP = 0x175,
+		IA32_SYSENTER_EIP = 0x176,
+		IA32_EFER = 0xc0000080,
+		IA32_FS_BASE = 0xc0000100,
+		IA32_GS_BASE = 0xc0000101
 	};
 
 	union Cr0
@@ -395,4 +404,105 @@ namespace arch
 			unsigned long reserved3 : 24;
 		} bits;
 	};
+
+#pragma pack(push, 1)	
+	struct DescriptorTable
+	{
+		unsigned short limit;
+		unsigned long long base;
+	};
+#pragma pack(pop)
+
+	struct SegmentDescriptor
+	{
+		unsigned short segment_limit_low;
+		unsigned short base_address_low;
+
+		union
+		{
+			struct
+			{
+				unsigned int base_address_mid : 8;
+				unsigned int type : 4;
+				unsigned int system : 1;
+				unsigned int dpl : 2;
+				unsigned int present : 1;
+				unsigned int segment_limit_high : 4;
+				unsigned int available : 1;
+				unsigned int long_mode : 1;
+				unsigned int default_size : 1;
+				unsigned int granularity : 1;
+				unsigned int base_address_high : 8;
+			} bits;
+
+			unsigned int flags_raw;
+		};
+	};
+
+	struct SystemSegmentDescriptor
+	{
+		unsigned short segment_limit_low;
+		unsigned short base_address_low;
+
+		union
+		{
+			struct
+			{
+				unsigned int base_address_mid : 8;
+				unsigned int type : 4;
+				unsigned int system : 1;
+				unsigned int dpl : 2;
+				unsigned int present : 1;
+				unsigned int segment_limit_high : 4;
+				unsigned int available : 1;
+				unsigned int long_mode : 1;
+				unsigned int default_size : 1;
+				unsigned int granularity : 1;
+				unsigned int base_address_high : 8;
+			} bits;
+
+			unsigned int flags_raw;
+		};
+
+		unsigned int base_upper;
+		unsigned int reserved;
+	};
+
+	union SegmentSelector
+	{
+		unsigned short raw;
+
+		struct
+		{
+			unsigned short rpl : 2;
+			unsigned short table_indicator : 1;
+			unsigned short index : 13;
+		} bits;
+	};
+
+	union SegmentAccessRights
+	{
+		unsigned int raw;
+
+		struct
+		{
+			unsigned int type : 4;
+			unsigned int system : 1;
+			unsigned int dpl : 2;
+			unsigned int present : 1;
+			unsigned int reserved1 : 4;
+			unsigned int available : 1;
+			unsigned int long_mode : 1;
+			unsigned int default_size : 1;
+			unsigned int granularity : 1;
+			unsigned int unusable : 1;
+			unsigned int reserved2 : 15;
+		} bits;
+	};
+
+	constexpr unsigned long SEGMENT_DESCRIPTOR_TYPE_TSS_AVAILABLE = 0x00000009;
+	constexpr unsigned long SEGMENT_DESCRIPTOR_TYPE_TSS_BUSY = 0x0000000b;
+
+	unsigned int get_segment_access_rights(unsigned short segment_selector);
+	unsigned long long get_segment_base(unsigned long long gdt_base, unsigned short segment_selector);
 }
