@@ -1,4 +1,6 @@
+#include <ntifs.h>
 #include <ntddk.h>
+#include <intrin.h>
 
 #include "load.h"
 #include "vmx.h"
@@ -71,6 +73,14 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 		KdPrint(("[-] Setting up VMCS failed\n"));
 		return false;
 	}
+
+	RtlCaptureContext(&vcpu->guest_context);
+	KdPrint(("[-] VMLAUNCH owo wo\n"));
+
+	__debugbreak();
+	__vmx_vmlaunch();
+
+	KdPrint(("[-] VMLAUNCH FAILED IG\n"));
 
 	return true;
 }

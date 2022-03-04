@@ -1,4 +1,5 @@
 #pragma once
+#pragma pack(push, 1)
 
 constexpr unsigned long kTag = 'nira';
 
@@ -21,7 +22,16 @@ namespace arch
 		IA32_SYSENTER_EIP = 0x176,
 		IA32_EFER = 0xc0000080,
 		IA32_FS_BASE = 0xc0000100,
-		IA32_GS_BASE = 0xc0000101
+		IA32_GS_BASE = 0xc0000101,
+		IA32_VMX_PINBASED_CTLS = 0x481,
+		IA32_VMX_TRUE_PINBASED_CTLS = 0x48d,
+		IA32_VMX_PROCBASED_CTLS = 0x482,
+		IA32_VMX_TRUE_PROCBASED_CTLS = 0x48e,
+		IA32_VMX_PROCBASED_CTLS2 = 0x48b,
+		IA32_VMX_ENTRY_CTLS = 0x484,
+		IA32_VMX_TRUE_ENTRY_CTLS= 0x490,
+		IA32_VMX_EXIT_CTLS = 0x483,
+		IA32_VMX_TRUE_EXIT_CTLS = 0x48f
 	};
 
 	union Cr0
@@ -339,7 +349,7 @@ namespace arch
 		VMCS_GUEST_SMBASE = 0x4828,
 		VMCS_GUEST_SYSENTER_CS = 0x482a,
 		VMCS_GUEST_VMX_PREEMPTION_TIMER_VALUE = 0x482e,
-		VMCS_SYSENTER_CS = 0x4c00,
+		VMCS_HOST_SYSENTER_CS = 0x4c00,
 		VMCS_CTRL_CR0_GUEST_HOST_MASK = 0x6000,
 		VMCS_CTRL_CR4_GUEST_HOST_MASK = 0x6002,
 		VMCS_CTRL_CR0_READ_SHADOW = 0x6004,
@@ -390,18 +400,137 @@ namespace arch
 
 	union PinBasedVmExecutionControl
 	{
-		unsigned long raw;
+		unsigned int raw;
 
 		struct
 		{
-			unsigned long external_interrupt_exiting : 1;
-			unsigned long reserved1 : 2;
-			unsigned long nmi_exiting : 1;
-			unsigned long reserved2 : 1;
-			unsigned long virtual_nmis : 1;
-			unsigned long activate_vmx_preemption_timer : 1;
-			unsigned long process_posted_interrupts : 1;
-			unsigned long reserved3 : 24;
+			unsigned int external_interrupt_exiting : 1;
+			unsigned int reserved1 : 2;
+			unsigned int nmi_exiting : 1;
+			unsigned int reserved2 : 1;
+			unsigned int virtual_nmis : 1;
+			unsigned int activate_vmx_preemption_timer : 1;
+			unsigned int process_posted_interrupts : 1;
+			unsigned int reserved3 : 24;
+		} bits;
+	};
+
+	union ProcessorBasedVmExecutionControl
+	{
+		unsigned int raw;
+
+		struct
+		{
+			unsigned int reserved1 : 2;
+			unsigned int interrupt_window_exiting : 1;
+			unsigned int use_tsc_offseting : 1;
+			unsigned int reserved2 : 3;
+			unsigned int hlt_exiting : 1;
+			unsigned int reserved3 : 1;
+			unsigned int invlpg_exiting : 1;
+			unsigned int mwait_exiting : 1;
+			unsigned int rdpmc_exiting : 1;
+			unsigned int rdtsc_exiting : 1;
+			unsigned int reserved4 : 2;
+			unsigned int cr3_load_exiting : 1;
+			unsigned int cr3_store_exiting : 1;
+			unsigned int reserved5 : 2;
+			unsigned int cr8_load_exiting : 1;
+			unsigned int cr8_store_exiting : 1;
+			unsigned int use_tpr_shadow : 1;
+			unsigned int nmi_window_exiting : 1;
+			unsigned int mov_dr_exiting : 1;
+			unsigned int unconditional_io_exiting : 1;
+			unsigned int use_io_bitmaps : 1;
+			unsigned int reserved6 : 1;
+			unsigned int monitor_trap_flag : 1;
+			unsigned int use_msr_bitmaps : 1;
+			unsigned int monitor_exiting : 1;
+			unsigned int pause_exiting : 1;
+			unsigned int activate_secondary_controls : 1;
+		} bits;
+	};
+
+	union SecondaryProcessorBasedVmExecutionControl
+	{
+		unsigned int raw;
+
+		struct
+		{
+			unsigned int virtualize_apic_accesses : 1;
+			unsigned int enable_ept : 1;
+			unsigned int descriptor_table_exiting : 1;
+			unsigned int enable_rdtscp : 1;
+			unsigned int virtualize_x2_apic_mode : 1;
+			unsigned int enable_vpid : 1;
+			unsigned int wbinvd_exiting : 1;
+			unsigned int unrestricted_guest : 1;
+			unsigned int apic_register_virtualization : 1;
+			unsigned int virtual_interrupt_delivery : 1;
+			unsigned int pause_loop_exiting : 1;
+			unsigned int rdrand_exiting : 1;
+			unsigned int enable_invpcid : 1;
+			unsigned int enable_vm_functions : 1;
+			unsigned int vmcs_shadowing : 1;
+			unsigned int enable_encls_exiting : 1;
+			unsigned int rdseed_exiting : 1;
+			unsigned int enable_pml : 1;
+			unsigned int ept_violation_virtualization_exception : 1;
+			unsigned int conceal_vmx_non_root : 1;
+			unsigned int enable_xsave_xrstors : 1;
+			unsigned int reserved1 : 1;
+			unsigned int mode_based_execute_control_for_ept : 1;
+			unsigned int reserved2 : 2;
+			unsigned int use_tsc_scaling : 1;
+			unsigned int reserved3 : 6;
+		} bits;
+	};
+
+	union VmEntryControlField
+	{
+		unsigned int raw;
+
+		struct
+		{
+			unsigned int reserved1 : 2;
+			unsigned int load_debug_controls : 1;
+			unsigned int reserved2 : 6;
+			unsigned int ia32e_mode_guest : 1;
+			unsigned int entry_to_smm : 1;
+			unsigned int deactivate_dual_monitor_treatment : 1;
+			unsigned int reserved3 : 1;
+			unsigned int load_ia32_perf_global_ctrl : 1;
+			unsigned int load_ia32_pat : 1;
+			unsigned int load_ia32_efer : 1;
+			unsigned int load_ia32_bndcfgs : 1;
+			unsigned int conceal_vm_entries : 1;
+			unsigned int reserved4 : 14;
+		} bits;
+	};
+
+	union VmExitControlField
+	{
+		unsigned int raw;
+
+		struct
+		{
+			unsigned int reserved1 : 2;
+			unsigned int save_debug_controls : 1;
+			unsigned int reserved2 : 6;
+			unsigned int host_address_space_size : 1;
+			unsigned int reserved3 : 2;
+			unsigned int load_ia32_perf_global_ctrl : 1;
+			unsigned int reserved4 : 2;
+			unsigned int acknowledge_interrupt_on_exit : 1;
+			unsigned int reserved5 : 2;
+			unsigned int save_ia32_pat : 1;
+			unsigned int load_ia32_pat : 1;
+			unsigned int save_ia32_efer : 1;
+			unsigned int load_ia32_efer : 1;
+			unsigned int save_vmx_preemption_timer_value : 1;
+			unsigned int clear_ia32_bndcfgs : 1;
+			unsigned int conceal_vmx_exits : 1;
+			unsigned int reserved6 : 7;
 		} bits;
 	};
 
@@ -505,4 +634,16 @@ namespace arch
 
 	unsigned int get_segment_access_rights(unsigned short segment_selector);
 	unsigned long long get_segment_base(unsigned long long gdt_base, unsigned short segment_selector);
+
+	union change_name_msr
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long low_part : 32;
+			unsigned long long high_part : 32;
+		};
+	};
 }
+#pragma pack(pop)

@@ -56,24 +56,24 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 
 		KeSetSystemGroupAffinityThread(&affinity, &original_affinity);
 
-		success = load::load_hypervisor(vmm_context->processors_vcpu[i]);
+		auto success = load::load_hypervisor(vmm_context->processors_vcpu[i]);
 
 		if (!success)
 		{
-			KdPrint(("[-] loading ArinVisor failed on processor %d", i));
+			KdPrint(("[-] loading ArinVisor failed on processor %d\n", i));
+			KdPrint(("[-] Failed to load ArinVisor\n"));
 			break;
 		}
 
 		KeRevertToUserGroupAffinityThread(&original_affinity);
 	}
-
+	
 	if (!success)
 	{
-		KdPrint(("[-] Failed to load ArinVisor"));
 		utils::free_memory(vmm_context);
 		return STATUS_UNSUCCESSFUL;
 	}
-	
+
 	KdPrint(("[+] ArinVisor loaded successfully\n"));
 
 	return STATUS_SUCCESS;

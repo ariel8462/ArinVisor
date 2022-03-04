@@ -6,8 +6,10 @@
 #include "vmm.h"
 #include "helpers.h"
 
+constexpr unsigned short selector_host_mask = 0x7;
+
 template <typename T>
-static constexpr auto vmwrite(arch::VmcsFields vmcs_field, T field_value)
+constexpr auto vmwrite(arch::VmcsFields vmcs_field, T field_value)
 {
 	auto failed = ::__vmx_vmwrite(static_cast<size_t>(vmcs_field), static_cast<size_t>(field_value));
 
@@ -15,7 +17,7 @@ static constexpr auto vmwrite(arch::VmcsFields vmcs_field, T field_value)
 }
 
 template <typename T>
-static constexpr auto vmread(arch::VmcsFields vmcs_field, T* field_value)
+constexpr auto vmread(arch::VmcsFields vmcs_field, T* field_value)
 {
 	auto failed = ::__vmx_vmread(static_cast<size_t>(vmcs_field), static_cast<size_t>(field_value));
 
@@ -56,7 +58,6 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 		return false;
 	}
 
-	//setup all vmcs fields: guest-state, host-state, vm execution controls, to do: setup rip & rsp
 	auto success = vmwrite(arch::VmcsFields::VMCS_GUEST_CR0, ::__readcr0());
 	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_CR3, ::__readcr3());
 	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_CR4, ::__readcr4());
@@ -65,7 +66,8 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 	
 	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_RFLAGS, ::__readeflags());
 
-	//rip and rsp
+	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_RIP, reinterpret_cast<unsigned long long>(_enter_guest));
+	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_RSP, reinterpret_cast<unsigned long long>(vcpu->stack + 0x6000 - 8));
 
 	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_DEBUGCTL, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_DEBUGCTL)
@@ -147,15 +149,31 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CR3, ::__readcr3());
 	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CR4, ::__readcr4());
 
-	//rip & rsp
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_RIP, reinterpret_cast<unsigned long long>(_vm_exit_handler));
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_RSP, reinterpret_cast<unsigned long long>(vcpu->stack + 0x6000 - 8));
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_TR_SELECTOR, ::_read_tr());
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CS_SELECTOR, ::_read_cs());
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_DS_SELECTOR, ::_read_ds());
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SS_SELECTOR, ::_read_ss());
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GS_SELECTOR, ::_read_gs());
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_FS_SELECTOR, ::_read_fs());
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_ES_SELECTOR, ::_read_es());
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_CS, ::__readmsr(
+		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_CS)
+		)
+	);
+
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_ESP, ::__readmsr(
+		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_ESP)
+		)
+	);
+
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_EIP, ::__readmsr(
+		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_EIP)
+		)
+	);
+
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_TR_SELECTOR, ::_read_tr() & ~selector_host_mask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CS_SELECTOR, ::_read_cs() & ~selector_host_mask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_DS_SELECTOR, ::_read_ds() & ~selector_host_mask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SS_SELECTOR, ::_read_ss() & ~selector_host_mask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GS_SELECTOR, ::_read_gs() & ~selector_host_mask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_FS_SELECTOR, ::_read_fs() & ~selector_host_mask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_ES_SELECTOR, ::_read_es() & ~selector_host_mask);
 
 	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GS_BASE, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_GS_BASE)
@@ -174,8 +192,115 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_CR0_READ_SHADOW, ::__readcr0());
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_CR4_READ_SHADOW, ::__readcr4());
 
+	arch::PinBasedVmExecutionControl pin_based_execution_control = { 0 };
+
+	arch::Ia32VmxBasicMsr vmx_basic_control_msr;
+	vmx_basic_control_msr.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_BASIC));
+
+	//make it look better later
+	if (vmx_basic_control_msr.bits.vmx_capability_hint == 1)
+	{
+		arch::change_name_msr test;
+		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_PINBASED_CTLS));
+
+		pin_based_execution_control.raw |= test.low_part;
+		pin_based_execution_control.raw &= test.high_part;
+	}
+	else
+	{
+		arch::change_name_msr test;
+		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_PINBASED_CTLS));
+
+		pin_based_execution_control.raw |= test.low_part;
+		pin_based_execution_control.raw &= test.high_part;
+	}
+
+	arch::ProcessorBasedVmExecutionControl processor_based_execution_control = { 0 };
+
+	processor_based_execution_control.bits.activate_secondary_controls = true;
+
+	//make it look better later
+	if (vmx_basic_control_msr.bits.vmx_capability_hint == 1)
+	{
+		arch::change_name_msr test;
+		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_PROCBASED_CTLS));
+
+		processor_based_execution_control.raw |= test.low_part;
+		processor_based_execution_control.raw &= test.high_part;
+	}
+	else
+	{
+		arch::change_name_msr test;
+		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_PROCBASED_CTLS));
+
+		processor_based_execution_control.raw |= test.low_part;
+		processor_based_execution_control.raw &= test.high_part;
+	}
+	
+	arch::SecondaryProcessorBasedVmExecutionControl secondary_processor_based_execution_control = { 0 };
+
+	secondary_processor_based_execution_control.bits.enable_rdtscp = true;
+	secondary_processor_based_execution_control.bits.enable_xsave_xrstors = true;
+	secondary_processor_based_execution_control.bits.enable_invpcid = true;
+
+	arch::change_name_msr test;
+	test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_PROCBASED_CTLS2));
+
+	secondary_processor_based_execution_control.raw |= test.low_part;
+	secondary_processor_based_execution_control.raw &= test.high_part;
+
+	arch::VmEntryControlField vm_entry_control_field = { 0 };
+	
+	vm_entry_control_field.bits.ia32e_mode_guest = true;
+
+	//make it look better later
+	if (vmx_basic_control_msr.bits.vmx_capability_hint == 1)
+	{
+		arch::change_name_msr test;
+		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_ENTRY_CTLS));
+
+		vm_entry_control_field.raw |= test.low_part;
+		vm_entry_control_field.raw &= test.high_part;
+	}
+	else
+	{
+		arch::change_name_msr test;
+		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_ENTRY_CTLS));
+
+		vm_entry_control_field.raw |= test.low_part;
+		vm_entry_control_field.raw &= test.high_part;
+	}
+	
+	arch::VmExitControlField vm_exit_control_field = { 0 };
+
+	vm_exit_control_field.bits.host_address_space_size = true;
+
+	if (vmx_basic_control_msr.bits.vmx_capability_hint == 1)
+	{
+		arch::change_name_msr test;
+		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_EXIT_CTLS));
+
+		vm_exit_control_field.raw |= test.low_part;
+		vm_exit_control_field.raw &= test.high_part;
+	}
+	else
+	{
+		arch::change_name_msr test;
+		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_EXIT_CTLS));
+
+		vm_exit_control_field.raw |= test.low_part;
+		vm_exit_control_field.raw &= test.high_part;
+	}
+	
+	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_PIN_BASED_VM_EXECUTION_CONTROLS, pin_based_execution_control.raw);
+	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, processor_based_execution_control.raw);
+	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_SECONDARY_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, secondary_processor_based_execution_control.raw);
+	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_VMEXIT_CONTROLS, vm_exit_control_field.raw);
+	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_VMENTRY_CONTROLS, vm_entry_control_field.raw);
+	
 	if (!success)
 	{
+		KdPrint(("Error in some VMWRITE\n"));
 		return false;
 	}
 	

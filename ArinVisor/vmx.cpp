@@ -3,6 +3,7 @@
 
 #include "vmx.h"
 #include "utils.h"
+#include "arch.h"
 
 void vmx::enable_vmx()
 {
@@ -134,4 +135,12 @@ void vmx::vmxoff()
 
 		KeRevertToUserGroupAffinityThread(&original_affinity);
 	}
+}
+
+extern "C" void vm_exit_handler(guest_state_vmx guest)
+{
+	KdPrint(("[+] OwO OwO OwO OwO UwU UwU UwU\n"));
+	size_t exit_reason;
+	__vmx_vmread(static_cast<size_t>(arch::VmcsFields::VMCS_EXIT_REASON), &exit_reason);
+	KdPrint(("[*] exit reason: %zu\n", exit_reason & 0xffff));
 }
