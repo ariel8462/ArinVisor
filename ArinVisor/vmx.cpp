@@ -137,9 +137,10 @@ void vmx::vmxoff()
 	}
 }
 
+//change it soon and implement a normal vm-exit handler
 extern "C" void vm_exit_handler(guest_state_vmx guest)
 {
-	KdPrint(("[+] OwO OwO OwO OwO UwU UwU UwU\n"));
+	KdPrint(("[+] caught VM-exit!\n"));
 	size_t exit_reason;
 	__vmx_vmread(static_cast<size_t>(arch::VmcsFields::VMCS_EXIT_REASON), &exit_reason);
 	KdPrint(("[*] exit reason: %zu\n", exit_reason & 0xffff));

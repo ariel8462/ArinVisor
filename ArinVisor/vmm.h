@@ -9,6 +9,8 @@ struct VirtualCpu
 	arch::VmmRegions* vmxon_region;
 	arch::VmmRegions* vmcs_region;
 
+	void* msr_bitmap;
+
 	//temp, remove later and implement some other solution
 	union
 	{

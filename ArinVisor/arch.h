@@ -534,13 +534,11 @@ namespace arch
 		} bits;
 	};
 
-#pragma pack(push, 1)	
 	struct DescriptorTable
 	{
 		unsigned short limit;
 		unsigned long long base;
 	};
-#pragma pack(pop)
 
 	struct SegmentDescriptor
 	{
@@ -629,13 +627,10 @@ namespace arch
 		} bits;
 	};
 
-	constexpr unsigned long SEGMENT_DESCRIPTOR_TYPE_TSS_AVAILABLE = 0x00000009;
-	constexpr unsigned long SEGMENT_DESCRIPTOR_TYPE_TSS_BUSY = 0x0000000b;
-
 	unsigned int get_segment_access_rights(unsigned short segment_selector);
 	unsigned long long get_segment_base(unsigned long long gdt_base, unsigned short segment_selector);
 
-	union change_name_msr
+	union ControlSetting
 	{
 		unsigned long long raw;
 

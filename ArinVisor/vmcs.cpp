@@ -5,6 +5,7 @@
 #include "arch.h"
 #include "vmm.h"
 #include "helpers.h"
+#include "memory.h"
 
 constexpr unsigned short selector_host_mask = 0x7;
 
@@ -22,6 +23,14 @@ constexpr auto vmread(arch::VmcsFields vmcs_field, T* field_value)
 	auto failed = ::__vmx_vmread(static_cast<size_t>(vmcs_field), static_cast<size_t>(field_value));
 
 	return failed == STATUS_SUCCESS;
+}
+
+static void set_control(unsigned int& field, unsigned long long control_set)
+{
+	arch::ControlSetting bit_control = { control_set };
+	
+	field |= bit_control.low_part;
+	field &= bit_control.high_part;
 }
 
 bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
@@ -193,49 +202,38 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_CR4_READ_SHADOW, ::__readcr4());
 
 	arch::PinBasedVmExecutionControl pin_based_execution_control = { 0 };
-
 	arch::Ia32VmxBasicMsr vmx_basic_control_msr;
-	vmx_basic_control_msr.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_BASIC));
 
-	//make it look better later
-	if (vmx_basic_control_msr.bits.vmx_capability_hint == 1)
-	{
-		arch::change_name_msr test;
-		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_PINBASED_CTLS));
+	vmx_basic_control_msr.raw = ::__readmsr(
+		static_cast<unsigned long>(arch::Msr::IA32_VMX_BASIC)
+	);
 
-		pin_based_execution_control.raw |= test.low_part;
-		pin_based_execution_control.raw &= test.high_part;
-	}
-	else
-	{
-		arch::change_name_msr test;
-		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_PINBASED_CTLS));
-
-		pin_based_execution_control.raw |= test.low_part;
-		pin_based_execution_control.raw &= test.high_part;
-	}
+	set_control(
+		pin_based_execution_control.raw,
+		vmx_basic_control_msr.bits.vmx_capability_hint ?
+		::__readmsr(
+			static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_PINBASED_CTLS)
+		) :
+			::__readmsr(
+				static_cast<unsigned long>(arch::Msr::IA32_VMX_PINBASED_CTLS)
+			)
+		);
 
 	arch::ProcessorBasedVmExecutionControl processor_based_execution_control = { 0 };
 
 	processor_based_execution_control.bits.activate_secondary_controls = true;
+	processor_based_execution_control.bits.use_msr_bitmaps = true;
 
-	//make it look better later
-	if (vmx_basic_control_msr.bits.vmx_capability_hint == 1)
-	{
-		arch::change_name_msr test;
-		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_PROCBASED_CTLS));
-
-		processor_based_execution_control.raw |= test.low_part;
-		processor_based_execution_control.raw &= test.high_part;
-	}
-	else
-	{
-		arch::change_name_msr test;
-		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_PROCBASED_CTLS));
-
-		processor_based_execution_control.raw |= test.low_part;
-		processor_based_execution_control.raw &= test.high_part;
-	}
+	set_control(
+		processor_based_execution_control.raw,
+		vmx_basic_control_msr.bits.vmx_capability_hint ?
+		::__readmsr(
+			static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_PROCBASED_CTLS)
+		) :
+		::__readmsr(
+			static_cast<unsigned long>(arch::Msr::IA32_VMX_PROCBASED_CTLS)
+		)
+	);
 	
 	arch::SecondaryProcessorBasedVmExecutionControl secondary_processor_based_execution_control = { 0 };
 
@@ -243,61 +241,63 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 	secondary_processor_based_execution_control.bits.enable_xsave_xrstors = true;
 	secondary_processor_based_execution_control.bits.enable_invpcid = true;
 
-	arch::change_name_msr test;
-	test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_PROCBASED_CTLS2));
-
-	secondary_processor_based_execution_control.raw |= test.low_part;
-	secondary_processor_based_execution_control.raw &= test.high_part;
+	set_control(
+		secondary_processor_based_execution_control.raw,
+		::__readmsr(
+			static_cast<unsigned long>(arch::Msr::IA32_VMX_PROCBASED_CTLS2)
+		)
+	);
 
 	arch::VmEntryControlField vm_entry_control_field = { 0 };
 	
 	vm_entry_control_field.bits.ia32e_mode_guest = true;
 
-	//make it look better later
-	if (vmx_basic_control_msr.bits.vmx_capability_hint == 1)
-	{
-		arch::change_name_msr test;
-		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_ENTRY_CTLS));
-
-		vm_entry_control_field.raw |= test.low_part;
-		vm_entry_control_field.raw &= test.high_part;
-	}
-	else
-	{
-		arch::change_name_msr test;
-		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_ENTRY_CTLS));
-
-		vm_entry_control_field.raw |= test.low_part;
-		vm_entry_control_field.raw &= test.high_part;
-	}
+	set_control(
+		vm_entry_control_field.raw,
+		vmx_basic_control_msr.bits.vmx_capability_hint ?
+		::__readmsr(
+			static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_ENTRY_CTLS)
+		) :
+		::__readmsr(
+			static_cast<unsigned long>(arch::Msr::IA32_VMX_ENTRY_CTLS)
+		)
+	);
 	
 	arch::VmExitControlField vm_exit_control_field = { 0 };
 
 	vm_exit_control_field.bits.host_address_space_size = true;
 
-	if (vmx_basic_control_msr.bits.vmx_capability_hint == 1)
-	{
-		arch::change_name_msr test;
-		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_EXIT_CTLS));
-
-		vm_exit_control_field.raw |= test.low_part;
-		vm_exit_control_field.raw &= test.high_part;
-	}
-	else
-	{
-		arch::change_name_msr test;
-		test.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_VMX_EXIT_CTLS));
-
-		vm_exit_control_field.raw |= test.low_part;
-		vm_exit_control_field.raw &= test.high_part;
-	}
+	set_control(
+		vm_exit_control_field.raw,
+		vmx_basic_control_msr.bits.vmx_capability_hint ?
+		::__readmsr(
+			static_cast<unsigned long>(arch::Msr::IA32_VMX_TRUE_EXIT_CTLS)
+		) :
+		::__readmsr(
+			static_cast<unsigned long>(arch::Msr::IA32_VMX_EXIT_CTLS)
+		)
+	);
 	
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_PIN_BASED_VM_EXECUTION_CONTROLS, pin_based_execution_control.raw);
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, processor_based_execution_control.raw);
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_SECONDARY_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, secondary_processor_based_execution_control.raw);
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_VMEXIT_CONTROLS, vm_exit_control_field.raw);
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_VMENTRY_CONTROLS, vm_entry_control_field.raw);
-	
+
+	//temp, change a bit later, new keyword, etc
+	vcpu->msr_bitmap = new (NonPagedPool, kTag) char[PAGE_SIZE];
+
+	if (vcpu->msr_bitmap == nullptr)
+	{
+		KdPrint(("[-] Failed allocating msr bitmap\n"));
+		return false;
+	}
+
+	RtlSecureZeroMemory(vcpu->msr_bitmap, PAGE_SIZE);
+	auto msr_bitmap_physical_address = MmGetPhysicalAddress(vcpu->msr_bitmap).QuadPart;
+
+	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_MSR_BITMAP_ADDRESS, msr_bitmap_physical_address);
+
 	if (!success)
 	{
 		KdPrint(("Error in some VMWRITE\n"));
