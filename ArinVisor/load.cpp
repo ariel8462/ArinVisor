@@ -87,7 +87,7 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 		return false;
 	}
 
-	KdPrint(("[+] In guest!"));
+	KdPrint(("[+] In guest!\n"));
 
 	return true;
 }

@@ -45,10 +45,8 @@ bool utils::is_vmx_supported()
 
 void utils::free_memory(VmmContext* vmm_context)
 {
-	for (unsigned long i = 0; i < vmm_context->processor_count; i++)
+	for (auto& vcpu : vmm_context->processors_vcpu)
 	{
-		auto vcpu = vmm_context->processors_vcpu[i];
-
 		if (vcpu != nullptr)
 		{
 			if (vcpu->vmcs_region)
