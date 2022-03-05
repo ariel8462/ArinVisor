@@ -2,28 +2,13 @@
 #include <intrin.h>
 
 #include "vmcs.h"
+#include "vmx.h"
 #include "arch.h"
 #include "vmm.h"
 #include "helpers.h"
 #include "memory.h"
 
 constexpr unsigned short selector_host_mask = 0x7;
-
-template <typename T>
-constexpr auto vmwrite(arch::VmcsFields vmcs_field, T field_value)
-{
-	auto failed = ::__vmx_vmwrite(static_cast<size_t>(vmcs_field), static_cast<size_t>(field_value));
-
-	return failed == STATUS_SUCCESS;
-}
-
-template <typename T>
-constexpr auto vmread(arch::VmcsFields vmcs_field, T* field_value)
-{
-	auto failed = ::__vmx_vmread(static_cast<size_t>(vmcs_field), static_cast<size_t>(field_value));
-
-	return failed == STATUS_SUCCESS;
-}
 
 static void set_control(unsigned int& field, unsigned long long control_set)
 {
@@ -286,7 +271,7 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 
 	vcpu->msr_bitmap = new (NonPagedPool, kTag) char[PAGE_SIZE];
 
-	if (vcpu->msr_bitmap == nullptr)
+	if (!vcpu->msr_bitmap)
 	{
 		KdPrint(("[-] Failed allocating msr bitmap\n"));
 		return false;

@@ -139,7 +139,8 @@ _vm_exit_handler proc
 	pop r15
 
 	vmresume
-	int 3 
+
+	int 3 ; should not execute if 'vmresume' worked
 	nop
 _vm_exit_handler endp
 

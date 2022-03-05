@@ -35,7 +35,7 @@ unsigned long long arch::get_segment_base(unsigned long long gdt_base, unsigned 
 	auto index = segment_selector >> 3;
 	auto segment_descriptor = reinterpret_cast<SegmentDescriptor*>(gdt_base + index * sizeof(SegmentDescriptor));
 	
-	if (segment_descriptor->bits.system == false)
+	if (!segment_descriptor->bits.system)
 	{
 		auto system_segment_descriptor = reinterpret_cast<SystemSegmentDescriptor*>(segment_descriptor);
 

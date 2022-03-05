@@ -11,6 +11,22 @@ namespace vmx
 	void vmxoff();
 }
 
+template <typename T>
+constexpr auto vmwrite(arch::VmcsFields vmcs_field, T field_value)
+{
+	auto success = ::__vmx_vmwrite(static_cast<size_t>(vmcs_field), static_cast<size_t>(field_value));
+
+	return success == STATUS_SUCCESS;
+}
+
+template <typename T>
+constexpr auto vmread(arch::VmcsFields vmcs_field, T* field_value)
+{
+	auto success = ::__vmx_vmread(static_cast<size_t>(vmcs_field), field_value);
+
+	return success == STATUS_SUCCESS;
+}
+
 //remove later, place in some other place, maybe registers should be in opposite order
 #pragma pack(push, 1)
 struct guest_state_vmx

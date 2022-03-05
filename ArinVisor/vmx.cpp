@@ -29,7 +29,7 @@ void vmx::enable_vmx()
 		KdPrint(("[+] Enabled VMX in IA32_FEATURE_CONTROL msr\n"));
 	}
 
-	KdPrint(("lock enabled: %lld\nvmx in smx enabled: %lld\nvmx enabled: %lld\n",
+	KdPrint(("[+] lock enabled: %lld\n   vmx in smx enabled: %lld\n   vmx enabled: %lld\n",
 		feature_control.bits.lock, feature_control.bits.enable_vmx_in_smx, feature_control.bits.enable_vmx));
 
 	auto ia32_vmx_cr0_fixed0 = ::__readmsr(
@@ -60,7 +60,7 @@ void vmx::enable_vmx()
 	cr4.raw &= ia32_vmx_cr4_fixed1;
 	::__writecr4(cr4.raw);
 
-	KdPrint(("Adjusted cr0 and cr4:\n   cr0 = %lld\n   cr4 = %lld\n", cr0.raw, cr4.raw));
+	KdPrint(("[+] Adjusted cr0 and cr4:\n   cr0 = %lld\n   cr4 = %lld\n", cr0.raw, cr4.raw));
 }
 
 bool vmx::init_vmxon(VirtualCpu* vcpu)
@@ -140,23 +140,23 @@ void vmx::vmxoff()
 //change it soon and implement a normal vm-exit handler
 extern "C" void vm_exit_handler(guest_state_vmx guest)
 {
-	KdPrint(("[+] caught VM-exit!\n"));
-	size_t exit_reason;
-	__vmx_vmread(static_cast<size_t>(arch::VmcsFields::VMCS_EXIT_REASON), &exit_reason);
-	KdPrint(("[*] exit reason: %zu\n", exit_reason & 0xffff));
+	unsigned long long exit_reason;
 
-	//temporary, to skip vmlaunch in non-root mode
-	if (exit_reason == 20)
+	KdPrint(("[+] caught VM-exit!\n"));
+	vmread(arch::VmcsFields::VMCS_EXIT_REASON, &exit_reason);
+	KdPrint(("[*] exit reason: %lld\n", exit_reason));
+
+	//temporary, to skip vmlaunch & cpuid in non-root mode
+	if (exit_reason == 20 || exit_reason == 10)
 	{
-		PVOID next_instruction_address;
-		size_t current_rip;
+		unsigned long long current_rip;
 		size_t instruction_length = 0;
 
-		__vmx_vmread(static_cast<size_t>(arch::VmcsFields::VMCS_GUEST_RIP), &current_rip);
-		__vmx_vmread(static_cast<size_t>(arch::VmcsFields::VMCS_VMEXIT_INSTRUCTION_LENGTH), &instruction_length);
-
-		next_instruction_address = reinterpret_cast<char*>(current_rip) + instruction_length;
-
-		__vmx_vmwrite(static_cast<size_t>(arch::VmcsFields::VMCS_GUEST_RIP), reinterpret_cast<unsigned long long>(next_instruction_address));
+		vmread(arch::VmcsFields::VMCS_GUEST_RIP, &current_rip);
+		vmread(arch::VmcsFields::VMCS_VMEXIT_INSTRUCTION_LENGTH, &instruction_length);
+		vmwrite(arch::VmcsFields::VMCS_GUEST_RIP, reinterpret_cast<unsigned long long>(
+			reinterpret_cast<char*>(current_rip) + instruction_length
+			)
+		);
 	}
 }
