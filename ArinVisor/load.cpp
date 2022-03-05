@@ -79,7 +79,7 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 	KdPrint(("[+] executing VMLAUNCH\n"));
 
 	//for now, to test, implement some check of hypervisor presence later, infinite vm-exit on vmlaunch
-	__debugbreak();
+	//__debugbreak();
 	auto failed = __vmx_vmlaunch();
 
 	if (failed)
@@ -87,6 +87,8 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 		KdPrint(("[-] VMLAUNCH failed ig\n"));
 		return false;
 	}
+
+	__debugbreak();
 
 	return true;
 }

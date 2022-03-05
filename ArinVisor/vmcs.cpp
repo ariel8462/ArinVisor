@@ -284,7 +284,6 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_VMEXIT_CONTROLS, vm_exit_control_field.raw);
 	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_VMENTRY_CONTROLS, vm_entry_control_field.raw);
 
-	//temp, change a bit later, new keyword, etc
 	vcpu->msr_bitmap = new (NonPagedPool, kTag) char[PAGE_SIZE];
 
 	if (vcpu->msr_bitmap == nullptr)

@@ -56,7 +56,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 
 		KeSetSystemGroupAffinityThread(&affinity, &original_affinity);
 
-		auto success = load::load_hypervisor(vmm_context->processors_vcpu[i]);
+		success = load::load_hypervisor(vmm_context->processors_vcpu[i]);
 
 		if (!success)
 		{

@@ -144,4 +144,19 @@ extern "C" void vm_exit_handler(guest_state_vmx guest)
 	size_t exit_reason;
 	__vmx_vmread(static_cast<size_t>(arch::VmcsFields::VMCS_EXIT_REASON), &exit_reason);
 	KdPrint(("[*] exit reason: %zu\n", exit_reason & 0xffff));
+
+	//temporary, to skip vmlaunch in non-root mode
+	if (exit_reason == 20)
+	{
+		PVOID next_instruction_address;
+		size_t current_rip;
+		size_t instruction_length = 0;
+
+		__vmx_vmread(static_cast<size_t>(arch::VmcsFields::VMCS_GUEST_RIP), &current_rip);
+		__vmx_vmread(static_cast<size_t>(arch::VmcsFields::VMCS_VMEXIT_INSTRUCTION_LENGTH), &instruction_length);
+
+		next_instruction_address = reinterpret_cast<char*>(current_rip) + instruction_length;
+
+		__vmx_vmwrite(static_cast<size_t>(arch::VmcsFields::VMCS_GUEST_RIP), reinterpret_cast<unsigned long long>(next_instruction_address));
+	}
 }
