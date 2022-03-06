@@ -22,7 +22,7 @@ struct VirtualCpu
 struct VmmContext
 {
 	unsigned long processor_count;
-	VirtualCpu* processors_vcpu[8]; //to do - change later from constant to number of active processors
+	void* processors_vcpu;
 };
 
 extern VmmContext* vmm_context;

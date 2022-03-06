@@ -45,6 +45,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 	}
 
 	vmm_context->processor_count = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+	vmm_context->processors_vcpu = new (NonPagedPool, kTag) VirtualCpu*[vmm_context->processor_count];
 
 	for (unsigned long i = 0; i < vmm_context->processor_count; i++)
 	{
@@ -56,7 +57,8 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 
 		KeSetSystemGroupAffinityThread(&affinity, &original_affinity);
 
-		success = load::load_hypervisor(vmm_context->processors_vcpu[i]);
+		auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[i];
+		success = load::load_hypervisor(vcpu);
 
 		if (!success)
 		{

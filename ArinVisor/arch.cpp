@@ -46,9 +46,9 @@ unsigned long long arch::get_segment_base(unsigned long long gdt_base, unsigned 
 	}
 	else
 	{
-		segment_address = segment_descriptor->base_address_low;
-		segment_address |= segment_descriptor->bits.base_address_mid;
-		segment_address |= segment_descriptor->bits.base_address_high;
+		segment_address = static_cast<unsigned long long>(segment_descriptor->base_address_low);
+		segment_address |= static_cast<unsigned long long>(segment_descriptor->bits.base_address_mid) << 16;
+		segment_address |= static_cast<unsigned long long>(segment_descriptor->bits.base_address_high) << 24;
 	}
 
 	return segment_address;
