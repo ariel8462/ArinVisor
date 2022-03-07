@@ -72,6 +72,9 @@
     <ClInclude Include="exit_handler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="vcpu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="helpers.asm">

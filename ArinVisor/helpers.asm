@@ -1,6 +1,8 @@
 .code
 
 extern vm_exit_handler:proc
+extern read_rip:proc
+extern read_rsp:proc
 
 _read_ldtr proc
 	sldt ax
@@ -121,6 +123,9 @@ _vm_exit_handler proc
 
 	add rsp, 028h
 
+	cmp eax, 1
+	je _vmxoff_handler
+
 	pop rsp
 	pop rbp
 	pop rax
@@ -143,5 +148,50 @@ _vm_exit_handler proc
 	int 3 ; should not execute if 'vmresume' worked
 	nop
 _vm_exit_handler endp
+
+_vmxoff_handler proc
+	sub rsp, 028h
+	call read_rsp
+	add rsp, 028h
+
+	mov [rsp+080h], rax
+	
+	sub rsp, 028h
+	call read_rip
+	add rsp, 028h
+
+	mov rdx, rsp
+
+	mov rbx, [rsp+080h]
+	mov rsp, rbx
+	push rax
+
+	mov rsp, rdx
+
+	sub rbx, 8
+	mov [rsp+080h], rbx
+
+	pop rsp
+	pop rbp
+	pop rax
+	pop rbx
+	pop rcx
+	pop rdx
+	pop rsi
+	pop rdi
+	pop r8
+	pop r9
+	pop r10
+	pop r11
+	pop r12
+	pop r13
+	pop r14
+	pop r15
+
+	int 3 ; temporary, for debugging
+
+	pop rsp
+	ret
+_vmxoff_handler endp
 
 end

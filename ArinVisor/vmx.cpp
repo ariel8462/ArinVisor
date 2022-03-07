@@ -1,6 +1,7 @@
 #include <ntddk.h>
 #include <intrin.h>
 
+#include "vcpu.h"
 #include "vmx.h"
 #include "utils.h"
 #include "arch.h"
@@ -138,7 +139,7 @@ void vmx::vmxoff()
 	}
 }
 
-extern "C" void vm_exit_handler(guest_state_vmx guest_state)
+extern "C" int vm_exit_handler(guest_state_vmx guest_state)
 {
 	unsigned long long exit_reason;
 
@@ -147,8 +148,10 @@ extern "C" void vm_exit_handler(guest_state_vmx guest_state)
 	KdPrint(("[*] exit reason: %lld\n", exit_reason));
 	
 	bool increment_rip = true;
-	vmm_context->exit_handler.handle_vm_exit(exit_reason, guest_state, increment_rip);
+	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[KeGetCurrentProcessorIndex()];
 
+	vmm_context->exit_handler.handle_vm_exit(exit_reason, vcpu, guest_state, increment_rip);
+	
 	if (increment_rip)
 	{
 		unsigned long long current_rip;
@@ -161,4 +164,19 @@ extern "C" void vm_exit_handler(guest_state_vmx guest_state)
 			)
 		);
 	}
+
+	//if VMXOFF
+	return exit_reason == 26 ? 1 : 0;
+}
+
+extern "C" unsigned long long read_rip()
+{
+	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
+	return vcpu->guest_context.Rip;
+}
+
+extern "C" unsigned long long read_rsp()
+{
+	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
+	return vcpu->guest_context.Rsp;
 }

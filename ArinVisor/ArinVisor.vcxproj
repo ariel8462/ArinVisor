@@ -183,6 +183,7 @@
     <ClInclude Include="load.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="vcpu.h" />
     <ClInclude Include="vmcs.h" />
     <ClInclude Include="vmm.h" />
     <ClInclude Include="vmx.h" />

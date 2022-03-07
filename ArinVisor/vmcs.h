@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vmm.h"
+#include "vcpu.h"
 
 namespace vmcs
 {

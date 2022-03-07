@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include "arch.h"
+#include "vcpu.h"
 
 bool utils::is_intel_cpu()
 {
@@ -73,6 +74,8 @@ void utils::free_memory(VmmContext* vmm_context)
 		auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[i];
 		if (vcpu != nullptr)
 		{
+			/*
+			//blue screen here, to do - fix
 			if (vcpu->vmcs_region)
 			{
 				MmFreeContiguousMemory(vcpu->vmcs_region);
@@ -81,6 +84,7 @@ void utils::free_memory(VmmContext* vmm_context)
 			{
 				MmFreeContiguousMemory(vcpu->vmxon_region);
 			}
+			*/
 			if (vcpu->msr_bitmap)
 			{
 				delete vcpu->msr_bitmap;

@@ -5,6 +5,7 @@
 #include "load.h"
 #include "utils.h"
 #include "vmm.h"
+#include "vcpu.h"
 #include "vmx.h"
 #include "memory.h"
 
