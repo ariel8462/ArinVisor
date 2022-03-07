@@ -4,6 +4,7 @@
 #include "vmx.h"
 #include "utils.h"
 #include "arch.h"
+#include "exit_handler.h"
 
 void vmx::enable_vmx()
 {
@@ -137,17 +138,18 @@ void vmx::vmxoff()
 	}
 }
 
-//change it soon and implement a normal vm-exit handler
-extern "C" void vm_exit_handler(guest_state_vmx guest)
+extern "C" void vm_exit_handler(guest_state_vmx guest_state)
 {
 	unsigned long long exit_reason;
 
 	KdPrint(("[+] caught VM-exit!\n"));
 	vmread(arch::VmcsFields::VMCS_EXIT_REASON, &exit_reason);
 	KdPrint(("[*] exit reason: %lld\n", exit_reason));
+	
+	bool increment_rip = true;
+	vmm_context->exit_handler.handle_vm_exit(exit_reason, guest_state, increment_rip);
 
-	//temporary, to skip vmlaunch & cpuid in non-root mode
-	if (exit_reason == 20 || exit_reason == 10)
+	if (increment_rip)
 	{
 		unsigned long long current_rip;
 		size_t instruction_length = 0;
@@ -155,7 +157,7 @@ extern "C" void vm_exit_handler(guest_state_vmx guest)
 		vmread(arch::VmcsFields::VMCS_GUEST_RIP, &current_rip);
 		vmread(arch::VmcsFields::VMCS_VMEXIT_INSTRUCTION_LENGTH, &instruction_length);
 		vmwrite(arch::VmcsFields::VMCS_GUEST_RIP, reinterpret_cast<unsigned long long>(
-			reinterpret_cast<char*>(current_rip) + instruction_length
+			reinterpret_cast<unsigned char*>(current_rip) + instruction_length
 			)
 		);
 	}

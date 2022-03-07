@@ -40,6 +40,9 @@
     <ClCompile Include="arch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="exit_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="arch.h">
@@ -64,6 +67,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="exit_handler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

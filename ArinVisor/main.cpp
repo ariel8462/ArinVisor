@@ -12,7 +12,6 @@ VmmContext* vmm_context = nullptr;
 
 void driver_unload(PDRIVER_OBJECT driver_object);
 
-//add logging eventually to some important msr's, control registers etc
 extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path)
 {
 	UNREFERENCED_PARAMETER(registry_path);
@@ -22,7 +21,6 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 	PROCESSOR_NUMBER processor_number = { 0 };
 	bool success = false;
 
-	//bla bla stuff to initialize, driver unload routine, irp major functions
 	driver_object->DriverUnload = driver_unload;
 
 	if (!utils::is_intel_cpu())
@@ -73,7 +71,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 	if (!success)
 	{
 		utils::free_memory(vmm_context);
-		return STATUS_UNSUCCESSFUL;
+		return STATUS_HV_OPERATION_FAILED;
 	}
 
 	KdPrint(("[+] ArinVisor loaded successfully\n"));
