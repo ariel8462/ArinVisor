@@ -168,15 +168,3 @@ extern "C" int vm_exit_handler(guest_state_vmx guest_state)
 	//if VMXOFF
 	return exit_reason == 26 ? 1 : 0;
 }
-
-extern "C" unsigned long long read_rip()
-{
-	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
-	return vcpu->guest_context.Rip;
-}
-
-extern "C" unsigned long long read_rsp()
-{
-	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
-	return vcpu->guest_context.Rsp;
-}

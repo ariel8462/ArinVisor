@@ -95,3 +95,15 @@ void utils::free_memory(VmmContext* vmm_context)
 	delete vmm_context->processors_vcpu;
 	delete vmm_context;
 }
+
+extern "C" unsigned long long read_rip()
+{
+	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
+	return vcpu->guest_context.Rip;
+}
+
+extern "C" unsigned long long read_rsp()
+{
+	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
+	return vcpu->guest_context.Rsp;
+}

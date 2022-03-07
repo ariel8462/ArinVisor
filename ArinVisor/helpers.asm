@@ -188,8 +188,6 @@ _vmxoff_handler proc
 	pop r14
 	pop r15
 
-	int 3 ; temporary, for debugging
-
 	pop rsp
 	ret
 _vmxoff_handler endp
