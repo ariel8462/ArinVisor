@@ -8,7 +8,7 @@ namespace vmx
 	void enable_vmx();
 	bool init_vmxon(VirtualCpu* vcpu);
 	void vmxoff();
-	auto allocate_vmxon_region()->arch::VmmRegions*;
+	auto allocate_vmxon_region() -> arch::VmmRegions*;
 }
 
 template <typename T>

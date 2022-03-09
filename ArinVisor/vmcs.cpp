@@ -7,7 +7,7 @@
 #include "helpers.h"
 #include "memory.h"
 
-constexpr unsigned short selector_host_mask = 0x7;
+constexpr unsigned short kSelectorHostMask = 0x7;
 
 static void set_control(unsigned int& field, unsigned long long control_set)
 {
@@ -160,13 +160,13 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_TR_SELECTOR, ::_read_tr() & ~selector_host_mask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CS_SELECTOR, ::_read_cs() & ~selector_host_mask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_DS_SELECTOR, ::_read_ds() & ~selector_host_mask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SS_SELECTOR, ::_read_ss() & ~selector_host_mask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GS_SELECTOR, ::_read_gs() & ~selector_host_mask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_FS_SELECTOR, ::_read_fs() & ~selector_host_mask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_ES_SELECTOR, ::_read_es() & ~selector_host_mask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_TR_SELECTOR, ::_read_tr() & ~kSelectorHostMask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CS_SELECTOR, ::_read_cs() & ~kSelectorHostMask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_DS_SELECTOR, ::_read_ds() & ~kSelectorHostMask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SS_SELECTOR, ::_read_ss() & ~kSelectorHostMask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GS_SELECTOR, ::_read_gs() & ~kSelectorHostMask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_FS_SELECTOR, ::_read_fs() & ~kSelectorHostMask);
+	success &= vmwrite(arch::VmcsFields::VMCS_HOST_ES_SELECTOR, ::_read_es() & ~kSelectorHostMask);
 
 	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GS_BASE, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_GS_BASE)

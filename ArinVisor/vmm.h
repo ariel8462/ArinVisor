@@ -7,7 +7,6 @@ struct VmmContext
 {
 	unsigned long processor_count;
 	void* processors_vcpu;
-
 	ExitHandler exit_handler;
 };
 

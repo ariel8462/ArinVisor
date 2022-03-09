@@ -129,7 +129,19 @@ void ExitHandler::vmexit_task_switch(VirtualCpu* vcpu, guest_state_vmx guest_sta
 
 void ExitHandler::vmexit_cpuid(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
 {
+	arch::CpuFeatures cpuid_info = { 0 };
 
+	::__cpuid(reinterpret_cast<int*>(&cpuid_info), static_cast<int>(guest_state.rax));
+
+	if (static_cast<int>(guest_state.rax) == 0)
+	{
+		cpuid_info.ebx.raw = 0x41414141;
+	}
+
+	guest_state.rax = static_cast<unsigned long long>(cpuid_info.eax.raw);
+	guest_state.rbx = static_cast<unsigned long long>(cpuid_info.ebx.raw);
+	guest_state.rcx = static_cast<unsigned long long>(cpuid_info.ecx.raw);
+	guest_state.rdx = static_cast<unsigned long long>(cpuid_info.edx.raw);
 }
 
 void ExitHandler::vmexit_getsec(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept

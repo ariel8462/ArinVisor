@@ -165,6 +165,6 @@ extern "C" int vm_exit_handler(guest_state_vmx guest_state)
 		);
 	}
 
-	//if VMXOFF
+	//if vmxoff
 	return exit_reason == 26 ? 1 : 0;
 }

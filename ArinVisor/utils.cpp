@@ -107,3 +107,12 @@ extern "C" unsigned long long read_rsp()
 	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
 	return vcpu->guest_context.Rsp;
 }
+
+bool utils::is_hypervisor_present()
+{
+	arch::CpuFeatures cpuid_info = { 0 };
+
+	::__cpuid(reinterpret_cast<int*>(&cpuid_info), 0);
+
+	return cpuid_info.ebx.raw == 0x41414141;
+}
