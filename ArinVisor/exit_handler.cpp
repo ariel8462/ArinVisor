@@ -4,7 +4,7 @@
 #include "exit_handler.h"
 #include "vmx.h"
 
-void ExitHandler::handle_vm_exit(unsigned long long exit_reason, VirtualCpu* vcpu, guest_state_vmx& guest_state, bool& increment_rip) noexcept
+void ExitHandler::handle_vm_exit(unsigned long long exit_reason, VirtualCpu* vcpu, guest_state_vmx*& guest_state, bool& increment_rip) noexcept
 {
 	switch (exit_reason)
 	{
@@ -77,149 +77,149 @@ void ExitHandler::handle_vm_exit(unsigned long long exit_reason, VirtualCpu* vcp
 	}
 }
 
-void ExitHandler::vmexit_exception_or_nmi_interrupt(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_exception_or_nmi_interrupt(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_external_interrupt(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_external_interrupt(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_triple_fault(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_triple_fault(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_init_singal(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_init_singal(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_sipi(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_sipi(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_smi(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_smi(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_other_smi(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_other_smi(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_interrupt_window(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_interrupt_window(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_nmi_window(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_nmi_window(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_task_switch(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_task_switch(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_cpuid(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_cpuid(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 	arch::CpuFeatures cpuid_info = { 0 };
 
-	::__cpuid(reinterpret_cast<int*>(&cpuid_info), static_cast<int>(guest_state.rax));
+	::__cpuid(reinterpret_cast<int*>(&cpuid_info), static_cast<unsigned int>(guest_state->rax));
 
-	if (static_cast<int>(guest_state.rax) == 0)
+	if (static_cast<int>(guest_state->rax) == 0)
 	{
 		cpuid_info.ebx.raw = 0x41414141;
 	}
 
-	guest_state.rax = static_cast<unsigned long long>(cpuid_info.eax.raw);
-	guest_state.rbx = static_cast<unsigned long long>(cpuid_info.ebx.raw);
-	guest_state.rcx = static_cast<unsigned long long>(cpuid_info.ecx.raw);
-	guest_state.rdx = static_cast<unsigned long long>(cpuid_info.edx.raw);
+	guest_state->rax = static_cast<unsigned long long>(cpuid_info.eax.raw);
+	guest_state->rbx = static_cast<unsigned long long>(cpuid_info.ebx.raw);
+	guest_state->rcx = static_cast<unsigned long long>(cpuid_info.ecx.raw);
+	guest_state->rdx = static_cast<unsigned long long>(cpuid_info.edx.raw);
 }
 
-void ExitHandler::vmexit_getsec(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_getsec(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_hlt(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_hlt(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_invd(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_invd(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_invlpg(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_invlpg(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_rdpmc(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_rdpmc(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_rdtsc(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_rdtsc(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_rsm(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_rsm(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmcall(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmcall(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmclear(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmclear(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmlaunch(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmlaunch(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmptrld(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmptrld(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmptrst(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmptrst(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmread(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmread(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmresume(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmresume(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmwrite(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmwrite(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmxoff(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmxoff(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 	unsigned long long current_rip;
 	size_t instruction_length = 0;
@@ -240,197 +240,202 @@ void ExitHandler::vmexit_vmxoff(VirtualCpu* vcpu, guest_state_vmx guest_state, b
 	increment_rip = false;
 }
 
-void ExitHandler::vmexit_vmxon(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmxon(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_cr_access(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_cr_access(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_mov_dr(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_mov_dr(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_io_instruction(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_io_instruction(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_rdmsr(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_rdmsr(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
+{
+	auto msr = ::__readmsr(static_cast<unsigned int>(guest_state->rcx));
+
+	guest_state->rdx = msr >> 32;
+	guest_state->rax = msr & 0xffffffff;
+}
+
+void ExitHandler::vmexit_wrmsr(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
+{
+	::__writemsr(static_cast<unsigned long>(guest_state->rax),
+		static_cast<unsigned long long>(guest_state->rdx) << 32 | static_cast<unsigned int>(guest_state->rax)
+	);
+}
+
+void ExitHandler::vmexit_vmentry_failure_invalid_guest_state(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_wrmsr(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmentry_failure_msr_loading(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmentry_failure_invalid_guest_state(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_mwait(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmentry_failure_msr_loading(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_monitor_trap_flag(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_mwait(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_monitor(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_monitor_trap_flag(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_pause(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_monitor(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmentry_failure_machine_check_event(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_pause(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_tpr_below_threshold(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmentry_failure_machine_check_event(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_apic_access(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_tpr_below_threshold(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_virtualized_eoi(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_apic_access(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_access_to_gdtr_or_idtr(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_virtualized_eoi(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_access_to_ldtr_or_tr(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_access_to_gdtr_or_idtr(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_ept_violation(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_access_to_ldtr_or_tr(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_ept_misconfiguration(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_ept_violation(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_invept(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_ept_misconfiguration(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_rdtscp(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_invept(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmx_preemption_timer_expired(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_rdtscp(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_invvpid(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmx_preemption_timer_expired(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_wbinvd_or_wbnoinvd(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_invvpid(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_xsetbv(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_wbinvd_or_wbnoinvd(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_apic_write(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_xsetbv(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_rdrand(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_apic_write(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_invpcid(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_rdrand(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_vmfunc(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_invpcid(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_encls(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_vmfunc(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_rdseed(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_encls(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_page_modification_log_full(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_rdseed(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_xsaves(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_page_modification_log_full(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_xrstors(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_xsaves(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_spp_related_event(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_xrstors(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_umwait(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_spp_related_event(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_tpause(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }
 
-void ExitHandler::vmexit_umwait(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
-{
-
-}
-
-void ExitHandler::vmexit_tpause(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
-{
-
-}
-
-void ExitHandler::vmexit_loadiwkey(VirtualCpu* vcpu, guest_state_vmx guest_state, bool& increment_rip) noexcept
+void ExitHandler::vmexit_loadiwkey(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 
 }                                  

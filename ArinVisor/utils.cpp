@@ -75,6 +75,7 @@ void utils::free_memory(VmmContext* vmm_context)
 		if (vcpu != nullptr)
 		{
 			/*
+			__debugbreak();
 			//blue screen here, to do - fix
 			if (vcpu->vmcs_region)
 			{

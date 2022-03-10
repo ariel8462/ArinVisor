@@ -139,7 +139,7 @@ void vmx::vmxoff()
 	}
 }
 
-extern "C" int vm_exit_handler(guest_state_vmx guest_state)
+extern "C" int vm_exit_handler(guest_state_vmx* guest_state)
 {
 	unsigned long long exit_reason;
 
