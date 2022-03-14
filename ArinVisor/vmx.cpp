@@ -148,7 +148,7 @@ extern "C" int vm_exit_handler(guest_state_vmx* guest_state)
 	KdPrint(("[*] exit reason: %lld\n", exit_reason));
 	
 	bool increment_rip = true;
-	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[KeGetCurrentProcessorIndex()];
+	auto vcpu = vmm_context->processors_vcpu[KeGetCurrentProcessorNumber()];
 
 	vmm_context->exit_handler.handle_vm_exit(exit_reason, vcpu, guest_state, increment_rip);
 	

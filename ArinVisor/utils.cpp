@@ -46,7 +46,6 @@ bool utils::is_vmx_supported()
 
 void utils::free_memory(VmmContext* vmm_context)
 {
-	/*
 	for (auto& vcpu : vmm_context->processors_vcpu)
 	{
 		if (vcpu != nullptr)
@@ -67,45 +66,17 @@ void utils::free_memory(VmmContext* vmm_context)
 		}
 	}
 	delete vmm_context;
-	*/
-
-	for (unsigned long i = 0; i < vmm_context->processor_count; i++)
-	{
-		auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[i];
-		if (vcpu != nullptr)
-		{
-			/*
-			__debugbreak();
-			//blue screen here, to do - fix
-			if (vcpu->vmcs_region)
-			{
-				MmFreeContiguousMemory(vcpu->vmcs_region);
-			}
-			if (vcpu->vmxon_region)
-			{
-				MmFreeContiguousMemory(vcpu->vmxon_region);
-			}
-			*/
-			if (vcpu->msr_bitmap)
-			{
-				delete vcpu->msr_bitmap;
-			}
-			delete vcpu;
-		}
-	}
-	delete vmm_context->processors_vcpu;
-	delete vmm_context;
 }
 
 extern "C" unsigned long long read_rip()
 {
-	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
+	auto vcpu = vmm_context->processors_vcpu[KeGetCurrentProcessorNumber()];
 	return vcpu->guest_context.Rip;
 }
 
 extern "C" unsigned long long read_rsp()
 {
-	auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[0];
+	auto vcpu = vmm_context->processors_vcpu[KeGetCurrentProcessorNumber()];
 	return vcpu->guest_context.Rsp;
 }
 

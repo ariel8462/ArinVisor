@@ -10,7 +10,6 @@ namespace arch
 	enum class Msr : unsigned long
 	{
 		IA32_FEATURE_CONTROL = 0x3a,
-		IA32_LSTAR = 0xc0000082,
 		IA32_VMX_BASIC = 0x480,
 		IA32_VMX_CR0_FIXED0 = 0x486,
 		IA32_VMX_CR0_FIXED1 = 0x487,

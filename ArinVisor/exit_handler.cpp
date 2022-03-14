@@ -4,7 +4,7 @@
 #include "exit_handler.h"
 #include "vmx.h"
 
-void ExitHandler::handle_vm_exit(unsigned long long exit_reason, VirtualCpu* vcpu, guest_state_vmx*& guest_state, bool& increment_rip) noexcept
+void ExitHandler::handle_vm_exit(unsigned long long exit_reason, VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 	switch (exit_reason)
 	{
@@ -133,7 +133,7 @@ void ExitHandler::vmexit_cpuid(VirtualCpu* vcpu, guest_state_vmx* guest_state, b
 
 	::__cpuid(reinterpret_cast<int*>(&cpuid_info), static_cast<unsigned int>(guest_state->rax));
 
-	if (static_cast<int>(guest_state->rax) == 0)
+	if (static_cast<unsigned int>(guest_state->rax) == 0)
 	{
 		cpuid_info.ebx.raw = 0x41414141;
 	}
@@ -221,6 +221,7 @@ void ExitHandler::vmexit_vmwrite(VirtualCpu* vcpu, guest_state_vmx* guest_state,
 
 void ExitHandler::vmexit_vmxoff(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
+	//bad design, guest can force vmxoff, later make DeviceIoControl major function that executes VMXOFF
 	unsigned long long current_rip;
 	size_t instruction_length = 0;
 

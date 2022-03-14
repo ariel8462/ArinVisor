@@ -36,7 +36,7 @@ public:
 	ExitHandler& operator=(const ExitHandler&&) = delete;
 
 public:
-	void handle_vm_exit(unsigned long long exit_reason, VirtualCpu* vcpu, guest_state_vmx*& guest_state, bool& increment_rip) noexcept;
+	void handle_vm_exit(unsigned long long exit_reason, VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept;
 
 private:
 	void vmexit_exception_or_nmi_interrupt(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept;

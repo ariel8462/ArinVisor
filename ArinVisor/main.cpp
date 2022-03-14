@@ -10,7 +10,6 @@
 #include "memory.h"
 
 VmmContext* vmm_context = nullptr;
-
 void driver_unload(PDRIVER_OBJECT driver_object);
 
 extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING registry_path)
@@ -44,7 +43,6 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 	}
 
 	vmm_context->processor_count = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
-	vmm_context->processors_vcpu = new (NonPagedPool, kTag) VirtualCpu*[vmm_context->processor_count];
 
 	for (unsigned long i = 0; i < vmm_context->processor_count; i++)
 	{
@@ -56,23 +54,18 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 
 		KeSetSystemGroupAffinityThread(&affinity, &original_affinity);
 
-		auto vcpu = &reinterpret_cast<VirtualCpu*>(vmm_context->processors_vcpu)[i];
-		success = load::load_hypervisor(vcpu);
+		success = load::load_hypervisor(vmm_context->processors_vcpu[i]);
+
+		KeRevertToUserGroupAffinityThread(&original_affinity);
 
 		if (!success)
 		{
 			KdPrint(("[-] loading ArinVisor failed on processor %d\n", i));
 			KdPrint(("[-] Failed to load ArinVisor\n"));
-			break;
-		}
+			utils::free_memory(vmm_context);
 
-		KeRevertToUserGroupAffinityThread(&original_affinity);
-	}
-	
-	if (!success)
-	{
-		utils::free_memory(vmm_context);
-		return STATUS_HV_OPERATION_FAILED;
+			return STATUS_UNSUCCESSFUL;
+		}
 	}
 
 	KdPrint(("[+] ArinVisor loaded successfully\n"));
@@ -86,6 +79,7 @@ void driver_unload(PDRIVER_OBJECT driver_object)
 
 	vmx::vmxoff();
 	utils::free_memory(vmm_context);
+	__debugbreak();
 
 	KdPrint(("[+] ArinVisor unloaded successfully\n"));
 }
