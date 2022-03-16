@@ -14,9 +14,9 @@ Vmxon::Vmxon(VirtualCpu* vcpu) noexcept
 	allocate_vmxon_region();
 }
 
-Vmxon::~Vmxon() noexcept
+Vmxon::~Vmxon()
 {
-	if (vcpu_->vmxon_region)
+	if (vcpu_->vmxon_region != nullptr)
 	{
 		MmFreeContiguousMemory(vcpu_->vmxon_region);
 	}

@@ -17,7 +17,7 @@ static void set_control(unsigned int& field, unsigned long long control_set)
 	field &= bit_control.high_part;
 }
 
-SetupVmcs::SetupVmcs(VirtualCpu* vcpu) noexcept 
+SetupVmcs::SetupVmcs(VirtualCpu* vcpu)  noexcept
 	: vcpu_(vcpu)
 {
 	allocate_vmcs_region();
@@ -25,11 +25,11 @@ SetupVmcs::SetupVmcs(VirtualCpu* vcpu) noexcept
 
 SetupVmcs::~SetupVmcs()
 {
-	if (vcpu_->vmcs_region)
+	if (vcpu_->vmcs_region != nullptr)
 	{
 		MmFreeContiguousMemory(vcpu_->vmcs_region);
 	}
-	if (vcpu_->msr_bitmap)
+	if (vcpu_->msr_bitmap != nullptr)
 	{
 		delete vcpu_->msr_bitmap;
 	}

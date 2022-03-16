@@ -7,7 +7,7 @@ class Vmxon
 {
 public:
 	Vmxon(VirtualCpu* vcpu) noexcept;
-	~Vmxon() noexcept;
+	~Vmxon();
 
 	Vmxon(const Vmxon&) = delete;
 	Vmxon& operator=(const Vmxon&) = delete;

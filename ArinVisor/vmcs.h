@@ -6,7 +6,7 @@ class SetupVmcs
 {
 public:
 	SetupVmcs(VirtualCpu* vcpu) noexcept;
-	~SetupVmcs() noexcept;
+	~SetupVmcs();
 
 	SetupVmcs(const SetupVmcs&) = delete;
 	SetupVmcs& operator=(const SetupVmcs&) = delete;
