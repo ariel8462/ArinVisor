@@ -48,12 +48,19 @@ void utils::free_memory(VmmContext* vmm_context)
 {
 	for (auto& vmxon_module : vmm_context->vmxon)
 	{
-		delete vmxon_module;
+		if (vmxon_module)
+		{
+			delete vmxon_module;
+
+		}
 	}
 
 	for (auto& vmcs_module : vmm_context->vmxon)
 	{
-		delete vmcs_module;
+		if (vmcs_module)
+		{
+			delete vmcs_module;
+		}
 	}
 
 	for (auto& vcpu : vmm_context->processors_vcpu)
