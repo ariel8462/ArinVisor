@@ -46,21 +46,24 @@ bool utils::is_vmx_supported()
 
 void utils::free_memory(VmmContext* vmm_context)
 {
+	for (auto& vmxon_module : vmm_context->vmxon)
+	{
+		delete vmxon_module;
+	}
+
+	for (auto& vmcs_module : vmm_context->vmxon)
+	{
+		delete vmcs_module;
+	}
+
 	for (auto& vcpu : vmm_context->processors_vcpu)
 	{
 		if (vcpu != nullptr)
 		{
-			if (vcpu->vmcs_region)
-			{
-				MmFreeContiguousMemory(vcpu->vmcs_region);
-			}
-			if (vcpu->msr_bitmap)
-			{
-				delete vcpu->msr_bitmap;
-			}
 			delete vcpu;
 		}
 	}
+
 	delete vmm_context;
 }
 

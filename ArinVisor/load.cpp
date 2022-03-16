@@ -72,6 +72,9 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 		return false;
 	}
 
+	vmm_context->vmxon[vcpu->processor_number] = vmxon;
+	vmm_context->setup_vmcs[vcpu->processor_number] = setup_vmcs;
+
 	KdPrint(("[+] executing VMLAUNCH in processor %d\n", vcpu->processor_number));
 	RtlCaptureContext(&vcpu->guest_context);
 
