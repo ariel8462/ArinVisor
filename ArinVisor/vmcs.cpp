@@ -27,7 +27,7 @@ SetupVmcs::~SetupVmcs()
 {
 	if (vcpu_->vmcs_region)
 	{
-		delete vcpu_->vmcs_region;
+		MmFreeContiguousMemory(vcpu_->vmcs_region);
 	}
 	if (vcpu_->msr_bitmap)
 	{

@@ -78,8 +78,8 @@ void driver_unload(PDRIVER_OBJECT driver_object)
 	UNREFERENCED_PARAMETER(driver_object);
 
 	vmx::vmxoff();
+	::__debugbreak();
 	utils::free_memory(vmm_context);
-	__debugbreak();
 
 	KdPrint(("[+] ArinVisor unloaded successfully\n"));
 }

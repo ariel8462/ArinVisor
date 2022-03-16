@@ -18,7 +18,7 @@ Vmxon::~Vmxon() noexcept
 {
 	if (vcpu_->vmxon_region)
 	{
-		delete vcpu_->vmxon_region;
+		MmFreeContiguousMemory(vcpu_->vmxon_region);
 	}
 }
 
