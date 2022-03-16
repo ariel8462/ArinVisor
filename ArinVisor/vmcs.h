@@ -11,9 +11,6 @@ public:
 	SetupVmcs(const SetupVmcs&) = delete;
 	SetupVmcs& operator=(const SetupVmcs&) = delete;
 
-	SetupVmcs(const SetupVmcs&&) = delete;
-	SetupVmcs& operator=(const SetupVmcs&&) = delete;
-
 public:
 	bool setup_vmcs_fields();
 

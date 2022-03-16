@@ -12,9 +12,6 @@ public:
 	Vmxon(const Vmxon&) = delete;
 	Vmxon& operator=(const Vmxon&) = delete;
 
-	Vmxon(const Vmxon&&) = delete;
-	Vmxon& operator=(const Vmxon&&) = delete;
-
 public:
 	bool init_vmxon();
 

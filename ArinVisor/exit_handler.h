@@ -32,9 +32,6 @@ public:
 	ExitHandler(const ExitHandler&) = delete;
 	ExitHandler& operator=(const ExitHandler&) = delete;
 
-	ExitHandler(const ExitHandler&&) = delete;
-	ExitHandler& operator=(const ExitHandler&&) = delete;
-
 public:
 	void handle_vm_exit(unsigned long long exit_reason, VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept;
 
