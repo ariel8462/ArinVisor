@@ -225,13 +225,13 @@ void ExitHandler::vmexit_vmxoff(VirtualCpu* vcpu, guest_state_vmx* guest_state, 
 	unsigned long long current_rip;
 	size_t instruction_length = 0;
 
-	vmread(arch::VmcsFields::VMCS_GUEST_RIP, &current_rip);
-	vmread(arch::VmcsFields::VMCS_VMEXIT_INSTRUCTION_LENGTH, &instruction_length);
+	vmx::vmread(arch::VmcsFields::VMCS_GUEST_RIP, &current_rip);
+	vmx::vmread(arch::VmcsFields::VMCS_VMEXIT_INSTRUCTION_LENGTH, &instruction_length);
 
 	vcpu->guest_context.Rip = reinterpret_cast<unsigned long long>(
 		reinterpret_cast<unsigned char*>(current_rip) + instruction_length);
 
-	vmread(arch::VmcsFields::VMCS_GUEST_RSP, &vcpu->guest_context.Rsp);
+	vmx::vmread(arch::VmcsFields::VMCS_GUEST_RSP, &vcpu->guest_context.Rsp);
 
 	unsigned long long vmcs_region_physical_address = MmGetPhysicalAddress(vcpu->vmcs_region).QuadPart;
 

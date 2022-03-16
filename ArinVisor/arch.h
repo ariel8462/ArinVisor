@@ -2,7 +2,7 @@
 #pragma pack(push, 1)
 
 constexpr unsigned long kTag = 'nira';
-//test
+
 extern "C" void _sgdt(void*);
 
 namespace arch

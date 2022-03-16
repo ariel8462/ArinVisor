@@ -2,8 +2,29 @@
 
 #include "vcpu.h"
 
-namespace vmcs
+class SetupVmcs
 {
-	bool setup_vmcs(VirtualCpu*& vcpu);
-	auto allocate_vmcs_region() -> arch::VmmRegions*;
-}
+public:
+	SetupVmcs(VirtualCpu* vcpu) noexcept;
+	~SetupVmcs() noexcept;
+
+	SetupVmcs(const SetupVmcs&) = delete;
+	SetupVmcs& operator=(const SetupVmcs&) = delete;
+
+	SetupVmcs(const SetupVmcs&&) = delete;
+	SetupVmcs& operator=(const SetupVmcs&&) = delete;
+
+public:
+	bool setup_vmcs_fields();
+
+	operator bool()
+	{
+		return vcpu_->vmcs_region != nullptr;
+	}
+
+private:
+	void allocate_vmcs_region() noexcept;
+
+private:
+	VirtualCpu* vcpu_;
+};

@@ -17,17 +17,35 @@ static void set_control(unsigned int& field, unsigned long long control_set)
 	field &= bit_control.high_part;
 }
 
-bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
+SetupVmcs::SetupVmcs(VirtualCpu* vcpu) noexcept 
+	: vcpu_(vcpu)
+{
+	allocate_vmcs_region();
+}
+
+SetupVmcs::~SetupVmcs()
+{
+	if (vcpu_->vmcs_region)
+	{
+		delete vcpu_->vmcs_region;
+	}
+	if (vcpu_->msr_bitmap)
+	{
+		delete vcpu_->msr_bitmap;
+	}
+}
+
+bool SetupVmcs::setup_vmcs_fields()
 {
 	arch::Ia32VmxBasicMsr ia32_vmx_basic;
 	ia32_vmx_basic.raw = ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_BASIC)
 	);
 
-	vcpu->vmcs_region->header.raw = ia32_vmx_basic.bits.revision_identifier;
-	vcpu->vmcs_region->header.bits.shadow_vmcs_indicator = 0;
+	vcpu_->vmcs_region->header.raw = ia32_vmx_basic.bits.revision_identifier;
+	vcpu_->vmcs_region->header.bits.shadow_vmcs_indicator = 0;
 
-	unsigned long long vmcs_region_physical_address = MmGetPhysicalAddress(vcpu->vmcs_region).QuadPart;
+	unsigned long long vmcs_region_physical_address = MmGetPhysicalAddress(vcpu_->vmcs_region).QuadPart;
 
 	if (!vmcs_region_physical_address)
 	{
@@ -51,33 +69,35 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 		return false;
 	}
 
-	auto success = vmwrite(arch::VmcsFields::VMCS_GUEST_CR0, ::__readcr0());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_CR3, ::__readcr3());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_CR4, ::__readcr4());
+	auto success = vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_CR0, ::__readcr0());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_CR3, ::__readcr3());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_CR4, ::__readcr4());
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_DR7, ::__readdr(7));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_DR7, ::__readdr(7));
 	
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_RFLAGS, ::__readeflags());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_RFLAGS, ::__readeflags());
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_RIP, reinterpret_cast<unsigned long long>(_enter_guest));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_RSP, reinterpret_cast<unsigned long long>(vcpu->stack + 0x6000 - 8));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_RIP, reinterpret_cast<unsigned long long>(_enter_guest));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_RSP, reinterpret_cast<unsigned long long>(
+		vcpu_->stack + 0x6000 - 8)
+	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_DEBUGCTL, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_DEBUGCTL, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_DEBUGCTL)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_SYSENTER_CS, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_SYSENTER_CS, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_CS)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_SYSENTER_ESP, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_SYSENTER_ESP, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_ESP)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_SYSENTER_EIP, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_SYSENTER_EIP, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_EIP)
 		)
 	);
@@ -88,102 +108,104 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 	::_sgdt(&gdtr);
 	::__sidt(&idtr);
 	
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_LDTR_SELECTOR, ::_read_ldtr());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_TR_SELECTOR, ::_read_tr());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_CS_SELECTOR, ::_read_cs());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_DS_SELECTOR, ::_read_ds());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_SS_SELECTOR, ::_read_ss());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_GS_SELECTOR, ::_read_gs());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_FS_SELECTOR, ::_read_fs());
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_ES_SELECTOR, ::_read_es());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_LDTR_SELECTOR, ::_read_ldtr());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_TR_SELECTOR, ::_read_tr());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_CS_SELECTOR, ::_read_cs());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_DS_SELECTOR, ::_read_ds());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_SS_SELECTOR, ::_read_ss());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_GS_SELECTOR, ::_read_gs());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_FS_SELECTOR, ::_read_fs());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_ES_SELECTOR, ::_read_es());
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_LDTR_LIMIT, __segmentlimit(::_read_ldtr()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_TR_LIMIT, __segmentlimit(::_read_tr()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_CS_LIMIT, __segmentlimit(::_read_cs()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_DS_LIMIT, __segmentlimit(::_read_ds()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_SS_LIMIT, __segmentlimit(::_read_ss()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_GS_LIMIT, __segmentlimit(::_read_gs()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_FS_LIMIT, __segmentlimit(::_read_fs()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_ES_LIMIT, __segmentlimit(::_read_es()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_GDTR_LIMIT, gdtr.limit);
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_IDTR_LIMIT, idtr.limit);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_LDTR_LIMIT, __segmentlimit(::_read_ldtr()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_TR_LIMIT, __segmentlimit(::_read_tr()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_CS_LIMIT, __segmentlimit(::_read_cs()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_DS_LIMIT, __segmentlimit(::_read_ds()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_SS_LIMIT, __segmentlimit(::_read_ss()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_GS_LIMIT, __segmentlimit(::_read_gs()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_FS_LIMIT, __segmentlimit(::_read_fs()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_ES_LIMIT, __segmentlimit(::_read_es()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_GDTR_LIMIT, gdtr.limit);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_IDTR_LIMIT, idtr.limit);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_LDTR_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_ldtr()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_TR_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_tr()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_CS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_cs()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_DS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_ds()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_SS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_ss()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_GS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_gs()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_FS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_fs()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_ES_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_es()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_LDTR_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_ldtr()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_TR_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_tr()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_CS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_cs()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_DS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_ds()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_SS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_ss()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_GS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_gs()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_FS_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_fs()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_ES_ACCESS_RIGHTS, arch::get_segment_access_rights(::_read_es()));
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_LDTR_BASE, arch::get_segment_base(gdtr.base, ::_read_ldtr()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_TR_BASE, arch::get_segment_base(gdtr.base, ::_read_tr()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_CS_BASE, arch::get_segment_base(gdtr.base, ::_read_cs()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_DS_BASE, arch::get_segment_base(gdtr.base, ::_read_ds()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_SS_BASE, arch::get_segment_base(gdtr.base, ::_read_ss()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_ES_BASE, arch::get_segment_base(gdtr.base, ::_read_es()));
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_GDTR_BASE, gdtr.base);
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_IDTR_BASE, idtr.base);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_LDTR_BASE, arch::get_segment_base(gdtr.base, ::_read_ldtr()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_TR_BASE, arch::get_segment_base(gdtr.base, ::_read_tr()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_CS_BASE, arch::get_segment_base(gdtr.base, ::_read_cs()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_DS_BASE, arch::get_segment_base(gdtr.base, ::_read_ds()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_SS_BASE, arch::get_segment_base(gdtr.base, ::_read_ss()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_ES_BASE, arch::get_segment_base(gdtr.base, ::_read_es()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_GDTR_BASE, gdtr.base);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_IDTR_BASE, idtr.base);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_GS_BASE, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_GS_BASE, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_GS_BASE)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_FS_BASE, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_FS_BASE, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_FS_BASE)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_GUEST_VMCS_LINK_POINTER, 0xffffffffffffffff);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_VMCS_LINK_POINTER, 0xffffffffffffffff);
 
-	success = vmwrite(arch::VmcsFields::VMCS_HOST_CR0, ::__readcr0());
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CR3, ::__readcr3());
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CR4, ::__readcr4());
+	success = vmx::vmwrite(arch::VmcsFields::VMCS_HOST_CR0, ::__readcr0());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_CR3, ::__readcr3());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_CR4, ::__readcr4());
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_RIP, reinterpret_cast<unsigned long long>(_vm_exit_handler));
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_RSP, reinterpret_cast<unsigned long long>(vcpu->stack + 0x6000 - 8));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_RIP, reinterpret_cast<unsigned long long>(_vm_exit_handler));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_RSP, reinterpret_cast<unsigned long long>(
+		vcpu_->stack + 0x6000 - 8)
+	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_CS, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_CS, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_CS)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_ESP, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_ESP, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_ESP)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_EIP, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_SYSENTER_EIP, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_SYSENTER_EIP)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_TR_SELECTOR, ::_read_tr() & ~kSelectorHostMask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_CS_SELECTOR, ::_read_cs() & ~kSelectorHostMask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_DS_SELECTOR, ::_read_ds() & ~kSelectorHostMask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_SS_SELECTOR, ::_read_ss() & ~kSelectorHostMask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GS_SELECTOR, ::_read_gs() & ~kSelectorHostMask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_FS_SELECTOR, ::_read_fs() & ~kSelectorHostMask);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_ES_SELECTOR, ::_read_es() & ~kSelectorHostMask);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_TR_SELECTOR, ::_read_tr() & ~kSelectorHostMask);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_CS_SELECTOR, ::_read_cs() & ~kSelectorHostMask);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_DS_SELECTOR, ::_read_ds() & ~kSelectorHostMask);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_SS_SELECTOR, ::_read_ss() & ~kSelectorHostMask);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_GS_SELECTOR, ::_read_gs() & ~kSelectorHostMask);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_FS_SELECTOR, ::_read_fs() & ~kSelectorHostMask);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_ES_SELECTOR, ::_read_es() & ~kSelectorHostMask);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GS_BASE, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_GS_BASE, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_GS_BASE)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_FS_BASE, ::__readmsr(
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_FS_BASE, ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_FS_BASE)
 		)
 	);
 
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_GDTR_BASE, gdtr.base);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_IDTR_BASE, idtr.base);
-	success &= vmwrite(arch::VmcsFields::VMCS_HOST_TR_BASE, arch::get_segment_base(gdtr.base, ::_read_tr()));
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_GDTR_BASE, gdtr.base);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_IDTR_BASE, idtr.base);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_HOST_TR_BASE, arch::get_segment_base(gdtr.base, ::_read_tr()));
 
-	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_CR0_READ_SHADOW, ::__readcr0());
-	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_CR4_READ_SHADOW, ::__readcr4());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_CR0_READ_SHADOW, ::__readcr0());
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_CR4_READ_SHADOW, ::__readcr4());
 
 	arch::PinBasedVmExecutionControl pin_based_execution_control = { 0 };
 	arch::Ia32VmxBasicMsr vmx_basic_control_msr;
@@ -262,24 +284,24 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 		)
 	);
 	
-	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_PIN_BASED_VM_EXECUTION_CONTROLS, pin_based_execution_control.raw);
-	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, processor_based_execution_control.raw);
-	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_SECONDARY_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, secondary_processor_based_execution_control.raw);
-	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_VMEXIT_CONTROLS, vm_exit_control_field.raw);
-	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_VMENTRY_CONTROLS, vm_entry_control_field.raw);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_PIN_BASED_VM_EXECUTION_CONTROLS, pin_based_execution_control.raw);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, processor_based_execution_control.raw);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_SECONDARY_PROCESSOR_BASED_VM_EXECUTION_CONTROLS, secondary_processor_based_execution_control.raw);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_VMEXIT_CONTROLS, vm_exit_control_field.raw);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_VMENTRY_CONTROLS, vm_entry_control_field.raw);
 
-	vcpu->msr_bitmap = new (NonPagedPool, kTag) char[PAGE_SIZE];
+	vcpu_->msr_bitmap = new (NonPagedPool, kTag) char[PAGE_SIZE];
 
-	if (!vcpu->msr_bitmap)
+	if (!vcpu_->msr_bitmap)
 	{
 		KdPrint(("[-] Failed allocating msr bitmap\n"));
 		return false;
 	}
 
-	RtlSecureZeroMemory(vcpu->msr_bitmap, PAGE_SIZE);
-	auto msr_bitmap_physical_address = MmGetPhysicalAddress(vcpu->msr_bitmap).QuadPart;
+	RtlSecureZeroMemory(vcpu_->msr_bitmap, PAGE_SIZE);
+	auto msr_bitmap_physical_address = MmGetPhysicalAddress(vcpu_->msr_bitmap).QuadPart;
 
-	success &= vmwrite(arch::VmcsFields::VMCS_CTRL_MSR_BITMAP_ADDRESS, msr_bitmap_physical_address);
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_MSR_BITMAP_ADDRESS, msr_bitmap_physical_address);
 
 	if (!success)
 	{
@@ -290,7 +312,7 @@ bool vmcs::setup_vmcs(VirtualCpu*& vcpu)
 	return true;
 }
 
-auto vmcs::allocate_vmcs_region() -> arch::VmmRegions*
+void SetupVmcs::allocate_vmcs_region() noexcept
 {
 	PHYSICAL_ADDRESS physical_max = { 0 };
 	physical_max.QuadPart = MAXULONG64;
@@ -302,10 +324,9 @@ auto vmcs::allocate_vmcs_region() -> arch::VmmRegions*
 	if (!vmcs_region)
 	{
 		KdPrint(("[-] Vmcs region allocation failed\n"));
-		return nullptr;
+		return;
 	}
 
 	RtlSecureZeroMemory(vmcs_region, arch::VMX_REGION_SIZE);
-
-	return vmcs_region;
+	vcpu_->vmcs_region = vmcs_region;
 }

@@ -7,7 +7,22 @@
 #include "arch.h"
 #include "exit_handler.h"
 
-void vmx::enable_vmx()
+Vmxon::Vmxon(VirtualCpu* vcpu) noexcept
+	: vcpu_(vcpu)
+{
+	enable_vmx();
+	allocate_vmxon_region();
+}
+
+Vmxon::~Vmxon() noexcept
+{
+	if (vcpu_->vmxon_region)
+	{
+		delete vcpu_->vmxon_region;
+	}
+}
+
+void Vmxon::enable_vmx() const noexcept
 {
 	arch::Cr4 cr4;
 	cr4.raw = ::__readcr4();
@@ -65,17 +80,36 @@ void vmx::enable_vmx()
 	KdPrint(("[+] Adjusted cr0 and cr4:\n   cr0 = %lld\n   cr4 = %lld\n", cr0.raw, cr4.raw));
 }
 
-bool vmx::init_vmxon(VirtualCpu* vcpu)
+void Vmxon::allocate_vmxon_region() noexcept
+{
+	PHYSICAL_ADDRESS physical_max = { 0 };
+	physical_max.QuadPart = MAXULONG64;
+
+	auto vmxon_region = reinterpret_cast<arch::VmmRegions*>(
+		MmAllocateContiguousMemory(arch::VMX_REGION_SIZE, physical_max)
+		);
+
+	if (!vmxon_region)
+	{
+		KdPrint(("[-] Vmxon region allocation failed\n"));
+		return;
+	}
+
+	RtlSecureZeroMemory(vmxon_region, arch::VMX_REGION_SIZE);
+	vcpu_->vmxon_region = vmxon_region;
+}
+
+bool Vmxon::init_vmxon()
 {
 	arch::Ia32VmxBasicMsr ia32_vmx_basic;
 	ia32_vmx_basic.raw = ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_BASIC)
 	);
 
-	vcpu->vmxon_region->header.raw = ia32_vmx_basic.bits.revision_identifier;
-	vcpu->vmxon_region->header.bits.shadow_vmcs_indicator = 0;
+	vcpu_->vmxon_region->header.raw = ia32_vmx_basic.bits.revision_identifier;
+	vcpu_->vmxon_region->header.bits.shadow_vmcs_indicator = 0;
 
-	unsigned long long vmxon_region_physical_address = MmGetPhysicalAddress(vcpu->vmxon_region).QuadPart;
+	unsigned long long vmxon_region_physical_address = MmGetPhysicalAddress(vcpu_->vmxon_region).QuadPart;
 
 	if (!vmxon_region_physical_address)
 	{
@@ -92,29 +126,9 @@ bool vmx::init_vmxon(VirtualCpu* vcpu)
 	}
 
 	KdPrint(("[+] Entered VMX state!\n"));
-	KdPrint(("[+] Vcpu %d is now in VMX operation\n", vcpu->processor_number));
+	KdPrint(("[+] Vcpu %d is now in VMX operation\n", vcpu_->processor_number));
 
 	return true;
-}
-
-auto vmx::allocate_vmxon_region() -> arch::VmmRegions*
-{
-	PHYSICAL_ADDRESS physical_max = { 0 };
-	physical_max.QuadPart = MAXULONG64;
-
-	auto vmxon_region = reinterpret_cast<arch::VmmRegions*>(
-		MmAllocateContiguousMemory(arch::VMX_REGION_SIZE, physical_max)
-		);
-
-	if (!vmxon_region)
-	{
-		KdPrint(("[-] Vmxon region allocation failed\n"));
-		return nullptr;
-	}
-
-	RtlSecureZeroMemory(vmxon_region, arch::VMX_REGION_SIZE);
-
-	return vmxon_region;
 }
 
 void vmx::vmxoff()
@@ -144,7 +158,7 @@ extern "C" int vm_exit_handler(guest_state_vmx* guest_state)
 	unsigned long long exit_reason;
 
 	KdPrint(("[+] caught VM-exit!\n"));
-	vmread(arch::VmcsFields::VMCS_EXIT_REASON, &exit_reason);
+	vmx::vmread(arch::VmcsFields::VMCS_EXIT_REASON, &exit_reason);
 	KdPrint(("[*] exit reason: %lld\n", exit_reason));
 	
 	bool increment_rip = true;
@@ -157,9 +171,9 @@ extern "C" int vm_exit_handler(guest_state_vmx* guest_state)
 		unsigned long long current_rip;
 		size_t instruction_length = 0;
 
-		vmread(arch::VmcsFields::VMCS_GUEST_RIP, &current_rip);
-		vmread(arch::VmcsFields::VMCS_VMEXIT_INSTRUCTION_LENGTH, &instruction_length);
-		vmwrite(arch::VmcsFields::VMCS_GUEST_RIP, reinterpret_cast<unsigned long long>(
+		vmx::vmread(arch::VmcsFields::VMCS_GUEST_RIP, &current_rip);
+		vmx::vmread(arch::VmcsFields::VMCS_VMEXIT_INSTRUCTION_LENGTH, &instruction_length);
+		vmx::vmwrite(arch::VmcsFields::VMCS_GUEST_RIP, reinterpret_cast<unsigned long long>(
 			reinterpret_cast<unsigned char*>(current_rip) + instruction_length
 			)
 		);

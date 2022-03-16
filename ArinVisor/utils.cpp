@@ -54,10 +54,6 @@ void utils::free_memory(VmmContext* vmm_context)
 			{
 				MmFreeContiguousMemory(vcpu->vmcs_region);
 			}
-			if (vcpu->vmxon_region)
-			{
-				MmFreeContiguousMemory(vcpu->vmxon_region);
-			}
 			if (vcpu->msr_bitmap)
 			{
 				delete vcpu->msr_bitmap;

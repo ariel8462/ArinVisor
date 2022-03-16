@@ -27,46 +27,44 @@ static bool allocate_vcpu(VirtualCpu*& vcpu)
 
 bool load::load_hypervisor(VirtualCpu*& vcpu)
 {
-	vmx::enable_vmx();
-
-	KdPrint(("[+] Enabled VMX\n"));
-	
 	if (!allocate_vcpu(vcpu))
 	{
 		KdPrint(("[-] Error in vcpu allocation\n"));
 		return false;
 	}
-
+	
 	KdPrint(("[+] allocated vcpu successfully\n"));
-
-	vcpu->processor_number = KeGetCurrentProcessorNumber();
-	vcpu->vmxon_region = vmx::allocate_vmxon_region();
-
-	if (vcpu->vmxon_region == nullptr)
+	
+	Vmxon* vmxon = new (NonPagedPool, kTag) Vmxon(vcpu);
+	
+	if (!vmxon)
 	{
 		KdPrint(("[-] Error in vmxon region allocation\n"));
 		return false;
 	}
 
 	KdPrint(("[+] allocated vmxon region successfully\n"));
-	vcpu->vmcs_region = vmcs::allocate_vmcs_region();
+	KdPrint(("[+] Enabled VMX\n"));
 
-	if (vcpu->vmcs_region == nullptr)
+	vcpu->processor_number = KeGetCurrentProcessorNumber();
+	SetupVmcs* setup_vmcs = new (NonPagedPool, kTag) SetupVmcs(vcpu);
+
+	if (!setup_vmcs)
 	{
 		KdPrint(("[-] Error in vmcs region allocation\n"));
 		return false;
 	}
 
 	KdPrint(("[+] allocated vmcs region successfully\n"));
-	auto success = vmx::init_vmxon(vcpu);
-
+	auto success = vmxon->init_vmxon();
+	
 	if (!success)
 	{
 		KdPrint(("[-] Entering VMX operation failed\n"));
 		return false;
 	}
-
-	success = vmcs::setup_vmcs(vcpu);
+	
+	success = setup_vmcs->setup_vmcs_fields();
 
 	if (!success)
 	{
