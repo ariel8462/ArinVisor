@@ -19,7 +19,6 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 	GROUP_AFFINITY affinity = { 0 };
 	GROUP_AFFINITY original_affinity = { 0 };
 	PROCESSOR_NUMBER processor_number = { 0 };
-	bool success = false;
 
 	driver_object->DriverUnload = driver_unload;
 
@@ -44,6 +43,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 
 	vmm_context->processor_count = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 
+	//launch ArinVisor in all cores
 	for (unsigned long i = 0; i < vmm_context->processor_count; i++)
 	{
 		RtlSecureZeroMemory(&affinity, sizeof(GROUP_AFFINITY));
@@ -54,7 +54,7 @@ extern "C" NTSTATUS DriverEntry(PDRIVER_OBJECT driver_object, PUNICODE_STRING re
 
 		KeSetSystemGroupAffinityThread(&affinity, &original_affinity);
 
-		success = load::load_hypervisor(vmm_context->processors_vcpu[i]);
+		auto success = load::load_hypervisor(vmm_context->processors_vcpu[i]);
 
 		KeRevertToUserGroupAffinityThread(&original_affinity);
 

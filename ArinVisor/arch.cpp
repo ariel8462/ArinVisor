@@ -8,6 +8,7 @@ unsigned int arch::get_segment_access_rights(unsigned short segment_selector)
 
 	selector.raw = segment_selector;
 
+	//if null descriptor
 	if (selector.bits.index == 0 && selector.bits.table_indicator == 0)
 	{
 		access_rights.bits.unusable = true;
@@ -27,6 +28,7 @@ unsigned long long arch::get_segment_base(unsigned long long gdt_base, unsigned 
 
 	selector.raw = segment_selector;
 
+	//if null descriptor
 	if (selector.bits.index == 0 && selector.bits.table_indicator == 0)
 	{
 		return 0;
@@ -35,6 +37,7 @@ unsigned long long arch::get_segment_base(unsigned long long gdt_base, unsigned 
 	auto index = segment_selector >> 3;
 	auto segment_descriptor = reinterpret_cast<SegmentDescriptor*>(gdt_base + index * sizeof(SegmentDescriptor));
 	
+	//if system descriptor (i.e. system bit is off) then the size is 64 bit
 	if (!segment_descriptor->bits.system)
 	{
 		auto system_segment_descriptor = reinterpret_cast<SystemSegmentDescriptor*>(segment_descriptor);

@@ -160,15 +160,15 @@ _vmxoff_handler proc
 	call read_rip
 	add rsp, 028h
 
-	mov rdx, rsp
+	mov rdx, rsp ; save rsp
 
 	mov rbx, [rsp+080h]
 	mov rsp, rbx
-	push rax
+	push rax ; push the address from read_rip to the stack we got from read_rsp
 
-	mov rsp, rdx
+	mov rsp, rdx ; restore rsp
 
-	sub rbx, 8
+	sub rbx, 8 ; because we pushed the rip address, need to substract 8 bytes from the stack (stack grows downwards)
 	mov [rsp+080h], rbx
 
 	pop rsp
