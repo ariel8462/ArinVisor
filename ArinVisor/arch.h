@@ -639,5 +639,128 @@ namespace arch
 			unsigned long long high_part : 32;
 		};
 	};
+
+	union Eptp
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long memory_type : 3;
+			unsigned long long walk_length : 3;
+			unsigned long long enable_access_dirty : 1;
+			unsigned long long reserved1 : 5;
+			unsigned long long pml4 : 36;
+			unsigned long long reserved2 : 16;
+		} bits;
+	};
+
+	union EptPml4e
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long read_access : 1;
+			unsigned long long write_access : 1;
+			unsigned long long execute_access : 1; // if 'mode-based execute control for EPT' is 1 it acts like SMEP
+			unsigned long long reserved1 : 5;
+			unsigned long long accessed : 1; // only if 6th bit of eptp is 1, else this field is ignored
+			unsigned long long ignored1 : 1;
+			unsigned long long execute_access_from_user_mode : 1; // only if 'mode-based execute control for EPT' is 1
+			unsigned long long ignored2 : 1;
+			unsigned long long pfn : 36;
+			unsigned long long reserved2 : 4;
+			unsigned long long ignored3 : 12;
+		} bits;
+	};
+
+	union EptPdpte
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long read_access : 1;
+			unsigned long long write_access : 1;
+			unsigned long long execute_access : 1; // if 'mode-based execute control for EPT' is 1 it acts like SMEP
+			unsigned long long reserved1 : 5;
+			unsigned long long accessed : 1; // only if 6th bit of eptp is 1, else this field is ignored
+			unsigned long long ignored1 : 1;
+			unsigned long long execute_access_from_user_mode : 1; // only if 'mode-based execute control for EPT' is 1
+			unsigned long long ignored2 : 1;
+			unsigned long long pfn : 36;
+			unsigned long long reserved2 : 4;
+			unsigned long long ignored3 : 12;
+		} bits;
+	};
+
+	union EptLargePde
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long read_access : 1;
+			unsigned long long write_access : 1;
+			unsigned long long execute_access : 1; // if 'mode-based execute control for EPT' is 1 it acts like SMEP
+			unsigned long long memory_type : 3;
+			unsigned long long ignore_pat : 1;
+			unsigned long long large_page : 1; // must be 1
+			unsigned long long accessed : 1; // only if 6th bit of eptp is 1, else this field is ignored
+			unsigned long long dirty : 1;
+			unsigned long long execute_access_from_user_mode : 1; // only if 'mode-based execute control for EPT' is 1
+			unsigned long long ignored1 : 1;
+			unsigned long long reserved1 : 9;
+			unsigned long long pfn : 27;
+			unsigned long long reserved2 : 4;
+			unsigned long long ignored2 : 11;
+			unsigned long long supress_ve : 1;
+		} bits;
+	};
+
+	union EptPde
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long read_access : 1;
+			unsigned long long write_access : 1;
+			unsigned long long execute_access : 1; // if 'mode-based execute control for EPT' is 1 it acts like SMEP
+			unsigned long long reserved1 : 4;
+			unsigned long long large_page : 1; // must be 0
+			unsigned long long accessed : 1; // only if 6th bit of eptp is 1, else this field is ignored
+			unsigned long long ignored1 : 1;
+			unsigned long long execute_access_from_user_mode : 1; // only if 'mode-based execute control for EPT' is 1
+			unsigned long long ignored2 : 1;
+			unsigned long long pfn : 36;
+			unsigned long long reserved2 : 4;
+			unsigned long long ignored3 : 12;
+		} bits;
+	};
+
+	union EptPte
+	{
+		unsigned long long raw;
+
+		struct
+		{
+			unsigned long long read_access : 1;
+			unsigned long long write_access : 1;
+			unsigned long long execute_access : 1; // if 'mode-based execute control for EPT' is 1 it acts like SMEP
+			unsigned long long memory_type : 3;
+			unsigned long long ignore_pat : 1;
+			unsigned long long ignored1 : 1;
+			unsigned long long accessed : 1; // only if 6th bit of eptp is 1, else this field is ignored
+			unsigned long long dirty : 1;
+			unsigned long long execute_access_from_user_mode : 1; // only if 'mode-based execute control for EPT' is 1
+			unsigned long long ignored2 : 1;
+			unsigned long long pfn : 36;
+			unsigned long long reserved1 : 4;
+			unsigned long long ignored3 : 11;
+			unsigned long long supress_ve : 1;
+		} bits;
+	};
 }
 #pragma pack(pop)

@@ -168,6 +168,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="arch.cpp" />
+    <ClCompile Include="ept.cpp" />
     <ClCompile Include="exit_handler.cpp" />
     <ClCompile Include="load.cpp" />
     <ClCompile Include="main.cpp" />
@@ -178,6 +179,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="arch.h" />
+    <ClInclude Include="ept.h" />
     <ClInclude Include="exit_handler.h" />
     <ClInclude Include="helpers.h" />
     <ClInclude Include="load.h" />

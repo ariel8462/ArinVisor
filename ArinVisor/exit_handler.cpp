@@ -338,12 +338,19 @@ void ExitHandler::vmexit_access_to_ldtr_or_tr(VirtualCpu* vcpu, guest_state_vmx*
 
 void ExitHandler::vmexit_ept_violation(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
+	unsigned long long vmcs_exit_qualification;
 
+	vmx::vmread(arch::VmcsFields::VMCS_EXIT_QUALIFICATION, &vmcs_exit_qualification);
+
+	KdPrint(("[+] Ept violation, qualification: %llu\n", vmcs_exit_qualification));
+
+	__debugbreak();
 }
 
 void ExitHandler::vmexit_ept_misconfiguration(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
-
+	KdPrint(("[+] Ept misconfiguration\n"));
+	__debugbreak();
 }
 
 void ExitHandler::vmexit_invept(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept

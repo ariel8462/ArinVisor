@@ -303,6 +303,14 @@ bool SetupVmcs::setup_vmcs_fields()
 
 	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_MSR_BITMAP_ADDRESS, msr_bitmap_physical_address);
 
+	arch::Eptp eptp = { 0 };
+
+	eptp.bits.walk_length = 3;
+	eptp.bits.memory_type = 6; // write-back
+	eptp.bits.pml4 = MmGetPhysicalAddress(&vcpu_->paging_structs.pml4).QuadPart / PAGE_SIZE;
+
+	success &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_EPT_POINTER, eptp.raw);
+	
 	if (!success)
 	{
 		KdPrint(("Error in some VMWRITE\n"));

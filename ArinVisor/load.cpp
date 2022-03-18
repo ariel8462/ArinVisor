@@ -72,8 +72,11 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 		return false;
 	}
 
+	Ept* ept = new (NonPagedPool, kTag) Ept(vcpu);
+
 	vmm_context->vmxon[vcpu->processor_number] = vmxon;
 	vmm_context->setup_vmcs[vcpu->processor_number] = setup_vmcs;
+	vmm_context->ept[vcpu->processor_number] = ept;
 
 	KdPrint(("[+] executing VMLAUNCH in processor %d\n", vcpu->processor_number));
 	RtlCaptureContext(&vcpu->guest_context);
