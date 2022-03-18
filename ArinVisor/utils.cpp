@@ -44,6 +44,7 @@ bool utils::is_vmx_supported()
 	return true;
 }
 
+//very bad design, make a module manager already :(
 void utils::free_memory(VmmContext* vmm_context)
 {
 	for (auto& vmxon_module : vmm_context->vmxon)
@@ -64,6 +65,16 @@ void utils::free_memory(VmmContext* vmm_context)
 		}
 
 		delete vmcs_module;
+	}
+
+	for (auto& ept_module : vmm_context->ept)
+	{
+		if (ept_module == nullptr)
+		{
+			break;
+		}
+
+		delete ept_module;
 	}
 
 	for (auto& vcpu : vmm_context->processors_vcpu)

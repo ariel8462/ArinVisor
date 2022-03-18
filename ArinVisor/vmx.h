@@ -21,8 +21,12 @@ public:
 	}
 
 private:
-	void enable_vmx() const noexcept;
 	void allocate_vmxon_region() noexcept;
+
+	void set_feature_control() noexcept;
+	void adjust_control_registers() noexcept;
+
+	void enable_vmx() noexcept;
 
 private:
 	VirtualCpu* vcpu_;

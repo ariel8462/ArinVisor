@@ -14,8 +14,8 @@ struct PagingStructures
 	//only 512 because of single pml4 entry (if pml4 was fully filled, size was 512*512)
 	arch::EptPdpte pdpt[kPageEntryCount];
 
-	// 512 pdpt entries, each entry has 512 pd's, 512*512
-	arch::EptLargePde pd[kPageEntryCount][kPageEntryCount];
+	// 512 pdpt entries, each entry has 512 pdt's, 512*512
+	arch::EptLargePde pdt[kPageEntryCount][kPageEntryCount];
 };
 
 struct VirtualCpu

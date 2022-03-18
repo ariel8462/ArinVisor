@@ -17,6 +17,10 @@ public:
 private:
 	void setup_ept() noexcept;
 
+	void setup_pml4() noexcept;
+	void setup_pdpt() noexcept;
+	void setup_pdt() noexcept;
+
 private:
 	VirtualCpu* vcpu_;
 };

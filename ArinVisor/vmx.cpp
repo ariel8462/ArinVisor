@@ -22,14 +22,14 @@ Vmxon::~Vmxon()
 	}
 }
 
-void Vmxon::enable_vmx() const noexcept
+void Vmxon::enable_vmx() noexcept
 {
-	arch::Cr4 cr4;
-	cr4.raw = ::__readcr4();
+	set_feature_control();
+	adjust_control_registers();
+}
 
-	cr4.bits.vmxe = true;
-	::__writecr4(cr4.raw);
-
+void Vmxon::set_feature_control() noexcept
+{
 	arch::FeatureControlMsr feature_control;
 	feature_control.raw = ::__readmsr(static_cast<unsigned long>(arch::Msr::IA32_FEATURE_CONTROL));
 
@@ -48,6 +48,15 @@ void Vmxon::enable_vmx() const noexcept
 
 	KdPrint(("[+] lock enabled: %lld\n   vmx in smx enabled: %lld\n   vmx enabled: %lld\n",
 		feature_control.bits.lock, feature_control.bits.enable_vmx_in_smx, feature_control.bits.enable_vmx));
+}
+
+void Vmxon::adjust_control_registers() noexcept
+{
+	arch::Cr4 cr4;
+	cr4.raw = ::__readcr4();
+
+	cr4.bits.vmxe = true;
+	::__writecr4(cr4.raw);
 
 	auto ia32_vmx_cr0_fixed0 = ::__readmsr(
 		static_cast<unsigned long>(arch::Msr::IA32_VMX_CR0_FIXED0)
