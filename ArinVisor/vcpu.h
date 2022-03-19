@@ -7,6 +7,7 @@
 constexpr unsigned long kStackSize = 0x6000;
 constexpr unsigned long kPageEntryCount = 0x200;
 
+#pragma pack(push, 1)
 struct PagingStructures
 {
 	arch::EptPml4e pml4[kPageEntryCount];
@@ -17,6 +18,7 @@ struct PagingStructures
 	// 512 pdpt entries, each entry has 512 pdt's, 512*512
 	arch::EptLargePde pdt[kPageEntryCount][kPageEntryCount];
 };
+#pragma pack(pop)
 
 struct VirtualCpu
 {
@@ -29,6 +31,7 @@ struct VirtualCpu
 	};
 
 	PagingStructures paging_structs;
+
 	arch::VmmRegions* vmxon_region;
 	arch::VmmRegions* vmcs_region;
 	void* msr_bitmap;

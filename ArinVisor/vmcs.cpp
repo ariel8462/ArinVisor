@@ -308,6 +308,7 @@ void SetupVmcs::setup_secondary_processor_based_execution_control(const arch::Ia
 	secondary_processor_based_execution_control.bits.enable_rdtscp = true;
 	secondary_processor_based_execution_control.bits.enable_xsave_xrstors = true;
 	secondary_processor_based_execution_control.bits.enable_invpcid = true;
+	secondary_processor_based_execution_control.bits.enable_ept = true;
 
 	set_control(
 		secondary_processor_based_execution_control.raw,
@@ -390,7 +391,7 @@ void SetupVmcs::setup_eptp()
 
 	eptp.bits.walk_length = 3;
 	eptp.bits.memory_type = 6; // write-back
-	eptp.bits.pml4 = MmGetPhysicalAddress(&vcpu_->paging_structs.pml4).QuadPart / PAGE_SIZE;
+	eptp.bits.pml4 = MmGetPhysicalAddress(&vcpu_->paging_structs.pml4).QuadPart >> 12;
 
 	success_ &= vmx::vmwrite(arch::VmcsFields::VMCS_CTRL_EPT_POINTER, eptp.raw);
 }

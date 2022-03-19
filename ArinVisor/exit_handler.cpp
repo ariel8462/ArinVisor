@@ -339,10 +339,13 @@ void ExitHandler::vmexit_access_to_ldtr_or_tr(VirtualCpu* vcpu, guest_state_vmx*
 void ExitHandler::vmexit_ept_violation(VirtualCpu* vcpu, guest_state_vmx* guest_state, bool& increment_rip) noexcept
 {
 	unsigned long long vmcs_exit_qualification;
+	unsigned long long memory_address;
 
 	vmx::vmread(arch::VmcsFields::VMCS_EXIT_QUALIFICATION, &vmcs_exit_qualification);
+	vmx::vmread(arch::VmcsFields::VMCS_GUEST_PHYSICAL_ADDRESS, &memory_address);
 
-	KdPrint(("[+] Ept violation, qualification: %llu\n", vmcs_exit_qualification));
+	KdPrint(("[-] Ept violation, qualification: %llu\n", vmcs_exit_qualification));
+	KdPrint(("[-] Memory address - 0x%llx\n", memory_address));
 
 	__debugbreak();
 }

@@ -64,6 +64,8 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 		return false;
 	}
 	
+	Ept* ept = new (NonPagedPool, kTag) Ept(vcpu);
+
 	success = setup_vmcs->setup_vmcs_fields();
 
 	if (!success)
@@ -71,8 +73,6 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 		KdPrint(("[-] Setting up VMCS failed\n"));
 		return false;
 	}
-
-	Ept* ept = new (NonPagedPool, kTag) Ept(vcpu);
 
 	vmm_context->vmxon[vcpu->processor_number] = vmxon;
 	vmm_context->setup_vmcs[vcpu->processor_number] = setup_vmcs;
