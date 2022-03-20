@@ -753,7 +753,7 @@ namespace arch
 			unsigned long long ignore_pat : 1;
 			unsigned long long ignored1 : 1;
 			unsigned long long accessed : 1; // only if 6th bit of eptp is 1, else this field is ignored
-			unsigned long long dirty : 1;
+			unsigned long long dirty : 1; // only if 6th bit of eptp is 1, else this field is ignored
 			unsigned long long execute_access_from_user_mode : 1; // only if 'mode-based execute control for EPT' is 1
 			unsigned long long ignored2 : 1;
 			unsigned long long pfn : 36;

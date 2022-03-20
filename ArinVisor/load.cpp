@@ -64,7 +64,11 @@ bool load::load_hypervisor(VirtualCpu*& vcpu)
 		return false;
 	}
 	
+	KdPrint(("[+] Setting up EPT\n"));
+
 	Ept* ept = new (NonPagedPool, kTag) Ept(vcpu);
+
+	KdPrint(("[+] Successfully initialized EPT\n"));
 
 	success = setup_vmcs->setup_vmcs_fields();
 
