@@ -1,6 +1,8 @@
 #include <ntddk.h>
 
 #include "ept.h"
+#include "memory.h"
+#include "utils.h"
 
 Ept::Ept(VirtualCpu* vcpu) noexcept
 	: vcpu_(vcpu)
@@ -49,4 +51,51 @@ void Ept::setup_pdt() noexcept
 				pdpt_entry) * kPageEntryCount + pd_entry;
 		}
 	}
+}
+
+auto Ept::split_page(arch::EptLargePde* pde_to_split) noexcept -> arch::EptPte*
+{
+	if (!pde_to_split->bits.large_page)
+	{
+		KdPrint(("[-] Tried splitting a non-large page?\n"));
+		return nullptr;
+	}
+
+	auto pte = new (NonPagedPool, kTag) arch::EptPte[kPageEntryCount];
+
+	if (!pte)
+	{
+		KdPrint(("[-] Pte allocation failed :(\n"));
+	}
+
+	RtlSecureZeroMemory(pte, sizeof(arch::EptPte));
+	pde_to_split->bits.large_page = false;
+
+	for (int i = 0; i < kPageEntryCount; i++)
+	{
+		pte[i].bits.write_access = pde_to_split->bits.write_access;
+		pte[i].bits.read_access = pde_to_split->bits.read_access;
+		pte[i].bits.execute_access = pde_to_split->bits.execute_access;
+		pte[i].bits.memory_type = pde_to_split->bits.memory_type;
+		pte[i].bits.pfn = (pde_to_split->bits.pfn << 21) / PAGE_SIZE + i;
+		pte[i].bits.accessed = pde_to_split->bits.accessed;
+		pte[i].bits.dirty = pde_to_split->bits.dirty;
+		pte[i].bits.ignore_pat = pde_to_split->bits.ignore_pat;
+		pte[i].bits.execute_access_from_user_mode = pde_to_split->bits.execute_access_from_user_mode;
+	}
+
+	arch::EptPde pde = { 0 };
+
+	pde.bits.write_access = pde_to_split->bits.write_access;
+	pde.bits.read_access = pde_to_split->bits.read_access;
+	pde.bits.execute_access = pde_to_split->bits.execute_access;
+	pde.bits.pfn = MmGetPhysicalAddress(pte).QuadPart / PAGE_SIZE;
+	pde.bits.accessed = pde_to_split->bits.accessed;
+	pde.bits.execute_access_from_user_mode = pde_to_split->bits.execute_access_from_user_mode;
+
+	*reinterpret_cast<arch::EptPde*>(pde_to_split) = pde;
+
+	KeIpiGenericCall(utils::invept, 0);
+	
+	return pte;
 }

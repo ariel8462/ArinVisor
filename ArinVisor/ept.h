@@ -12,8 +12,9 @@ public:
 	Ept& operator=(const Ept&) = delete;
 
 public:
-	//split ept, hook ept, etc - to do
-
+	//to do - ept hook
+	auto split_page(arch::EptLargePde* pde) noexcept -> arch::EptPte*;
+	
 private:
 	void setup_ept() noexcept;
 

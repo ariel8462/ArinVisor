@@ -4,6 +4,10 @@
 #include "utils.h"
 #include "arch.h"
 #include "vcpu.h"
+#include "helpers.h"
+#include "vmx.h"
+
+constexpr static unsigned long kInveptType = 0x2;
 
 bool utils::is_intel_cpu()
 {
@@ -109,4 +113,14 @@ bool utils::is_hypervisor_present()
 	::__cpuid(reinterpret_cast<int*>(&cpuid_info), 0);
 
 	return cpuid_info.ebx.raw == 0x41414141;
+}
+
+auto utils::invept(ULONG_PTR) -> ULONG_PTR
+{
+	arch::InveptDescriptor descriptor = { 0 };
+
+	vmx::vmread(arch::VmcsFields::VMCS_CTRL_EPT_POINTER, &descriptor.eptp);
+	_invept(kInveptType, &descriptor);
+
+	return 0;
 }

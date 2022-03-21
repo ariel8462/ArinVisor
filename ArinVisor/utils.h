@@ -8,4 +8,5 @@ namespace utils
 	bool is_vmx_supported();
 	void free_memory(VmmContext* vmm_context);
 	bool is_hypervisor_present();
+	auto invept(ULONG_PTR) -> ULONG_PTR;
 }

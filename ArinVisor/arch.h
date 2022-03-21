@@ -762,5 +762,11 @@ namespace arch
 			unsigned long long supress_ve : 1;
 		} bits;
 	};
+
+	struct InveptDescriptor
+	{
+		unsigned long long eptp;
+		unsigned long long reserved;
+	};
 }
 #pragma pack(pop)

@@ -192,4 +192,19 @@ _vmxoff_handler proc
 	ret
 _vmxoff_handler endp
 
+_invept proc
+	invept rcx, oword ptr [rdx]
+	
+	jz failed ; failed valid
+	jc failed ; failed invalid
+
+	xor rax, rax
+	ret
+
+failed:
+	mov rax, 1
+	ret
+
+_invept endp
+
 end
