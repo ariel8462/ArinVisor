@@ -8,6 +8,12 @@ Ept::Ept(VirtualCpu* vcpu) noexcept
 	: vcpu_(vcpu)
 {
 	setup_ept();
+	InitializeListHead(&list_head_);
+}
+
+Ept::~Ept()
+{
+	free_pte_list();
 }
 
 void Ept::setup_ept() noexcept
@@ -66,6 +72,7 @@ auto Ept::split_page(arch::EptLargePde* pde_to_split) noexcept -> arch::EptPte*
 	if (!pte)
 	{
 		KdPrint(("[-] Pte allocation failed :(\n"));
+		return nullptr;
 	}
 
 	RtlSecureZeroMemory(pte, sizeof(arch::EptPte));
@@ -95,7 +102,24 @@ auto Ept::split_page(arch::EptLargePde* pde_to_split) noexcept -> arch::EptPte*
 
 	*reinterpret_cast<arch::EptPde*>(pde_to_split) = pde;
 
+	PteEntry* pte_entry = new (NonPagedPool, kTag) PteEntry;
+	pte_entry->pte = pte;
+
+	InsertTailList(&list_head_, &pte_entry->entry);
+
 	KeIpiGenericCall(utils::invept, 0);
 	
 	return pte;
+}
+
+void Ept::free_pte_list() noexcept
+{
+	while (!IsListEmpty(&list_head_))
+	{
+		auto entry = RemoveTailList(&list_head_);
+		auto current_struct = CONTAINING_RECORD(entry, PteEntry, entry);
+
+		delete current_struct->pte;
+		delete current_struct;
+	}
 }

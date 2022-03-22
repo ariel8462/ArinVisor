@@ -6,7 +6,6 @@
 #include "vmcs.h"
 #include "ept.h"
 
-//bad
 constexpr unsigned long kProcessorCount = 8;
 
 struct VmmContext

@@ -48,49 +48,16 @@ bool utils::is_vmx_supported()
 	return true;
 }
 
-//very bad design, make a module manager already :(
 void utils::free_memory(VmmContext* vmm_context)
 {
-	for (auto& vmxon_module : vmm_context->vmxon)
+	for (unsigned long i = 0; i < vmm_context->processor_count; i++)
 	{
-		if (vmxon_module == nullptr)
-		{
-			break;
-		}
-		
-		delete vmxon_module;
+		delete vmm_context->vmxon[i];
+		delete vmm_context->setup_vmcs[i];
+		delete vmm_context->ept[i];
+		delete vmm_context->processors_vcpu[i];
 	}
-
-	for (auto& vmcs_module : vmm_context->setup_vmcs)
-	{
-		if (vmcs_module == nullptr)
-		{
-			break;
-		}
-
-		delete vmcs_module;
-	}
-
-	for (auto& ept_module : vmm_context->ept)
-	{
-		if (ept_module == nullptr)
-		{
-			break;
-		}
-
-		delete ept_module;
-	}
-
-	for (auto& vcpu : vmm_context->processors_vcpu)
-	{
-		if (vcpu == nullptr)
-		{
-			break;
-		}
-		
-		delete vcpu;
-	}
-
+	
 	delete vmm_context;
 }
 
